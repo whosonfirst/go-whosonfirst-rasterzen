@@ -3,35 +3,14 @@ package main
 import (
 	"context"
 	"flag"
+	"github.com/go-spatial/geom"
+	"github.com/go-spatial/geom/slippy"
+	"github.com/whosonfirst/go-whosonfirst-geojson/feature"
 	"github.com/whosonfirst/go-whosonfirst-index"
-	"github.com/murphy214/tile-cover"
-	"github.com/paulmach/go.geojson"
 	"io"
 	"io/ioutil"
 	"log"
-	"sync"
 )
-
-func seed(ctx context.Context, f *geojson.Feature, i int) {
-
-	tileids := tilecover.TileCover(f, i)
-
-	for _, t := range tileids {
-
-		select {
-		case <-ctx.Done():
-			break
-		default:
-			z := t.Z
-			x := t.X
-			y := t.Y
-
-			log.Println("CALL FETCH TILES WITH", z, x, y)
-			// rasterzen.FetchTileWithCache(c, z, x, y)
-		}
-	}
-
-}
 
 func main() {
 
@@ -40,6 +19,18 @@ func main() {
 	var max_zoom = flag.Int("max-zoom", 16, "")
 
 	flag.Parse()
+
+	seeder, err := seed.NewTileSeeder()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	ts, err := seed.NewTileSet()
+
+	if err != nil {
+		return nil
+	}
 
 	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -56,27 +47,31 @@ func main() {
 			return err
 		}
 
-		f, err := geojson.UnmarshalFeature(b)
+		f, err := feature.LoadFeatureFromReader(fh)
 
 		if err != nil {
 			return err
 		}
 
-		wg := new(sync.WaitGroup)
+		bboxes, err := f.BoundingBoxes()
 
-		for i := *min_zoom; i < *max_zoom; i++ {
-
-			wg.Add(1)
-
-			go func(ctx context.Context, f *geojson.Feature, i int) {
-
-				defer wg.Done()
-				seed(ctx, f, i)
-
-			}(ctx, f, i)
+		if err != nil {
+			return err
 		}
 
-		wg.Wait()
+		mbr := bboxes.MBR()
+
+		min := [2]float64{mbr.Min.X, mbr.Min.Y}
+		max := [2]float64{mbr.Max.Y, mbr.Max.Y}
+
+		ex := geom.NewExtent(min, max), nil
+
+		for z := *min_zoom; z < *max_zoom; z++ {
+
+			for _, t := range slippy.FromBounds(ex, uint(z)) {
+				ts.AddTile(t)
+			}
+		}
 
 		return nil
 	}
@@ -96,4 +91,5 @@ func main() {
 		}
 	}
 
+	seeder.SeedTileSet(ts)
 }

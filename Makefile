@@ -15,10 +15,10 @@ rmdeps:
 build:	fmt bin
 
 deps:
-	@GOPATH=$(GOPATH) go get -u "github.com/murphy214/tile-cover"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-index"
-	# @GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-geojson-v2"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-rasterzen"
+	# mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/go-spatial src/github.com/
 
 vendor-deps: rmdeps deps
 	if test -d vendor; then rm -rf vendor; fi

@@ -12,9 +12,10 @@ make bin
 
 ## Important
 
-This does not work yet.
+This does not work yet. No, really. This won't work until the `seed` branch of https://github.com/whosonfirst/go-rasterzen is merged in to master.
 
 ## See also
 
 * https://github.com/whosonfirst/go-rasterzen
 * https://github.com/whosonfirst/go-whosonfirst-index
+* https://github.com/whosonfirst/go-whosonfirst-geojson-v2
