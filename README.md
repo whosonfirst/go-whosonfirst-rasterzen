@@ -4,7 +4,7 @@ Go package for working with Who's On First data and `go-rasterzen` tiles.
 
 ## Install
 
-You will need to have both `Go` (specifically a version of Go more recent than 1.6 so let's just assume you need [Go 1.8](https://golang.org/dl/) or higher) and the `make` programs installed on your computer. Assuming you do just type:
+You will need to have both `Go` (specifically a version of Go more recent than 1.6 so let's just assume you need [Go 1.11](https://golang.org/dl/) or higher) and the `make` programs installed on your computer. Assuming you do just type:
 
 ```
 make bin
@@ -65,7 +65,7 @@ For example:
 
 ```
 ./bin/wof-rasterzen-seed -fs-cache -fs-root cache -nextzen-apikey {APIKEY} -max-zoom 10 -mode repo /usr/local/data/sfomuseum-data-whosonfirst/
-...time passes...
+...time passes, your fan whirrrrrrrrrs...
 ```
 
 Or if you just want to know how many tiles you'll end up fetching:
