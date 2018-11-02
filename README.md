@@ -18,7 +18,7 @@ This is work in progress. It works. Until it doesn't.
 
 ### wof-rasterzen-seed
 
-Pre-seed Rasterzen tiles (and their vector/raster derivatives) for one or more `go-whosonfirst-index` compatible indices.
+Pre-seed [go-rasterzen](https://github.com/whosonfirst/go-rasterzen) tiles (and their vector/raster derivatives) for one or more [go-whosonfirst-index](https://github.com/whosonfirst/go-whosonfirst-index) compatible indices.
 
 ```
 ./bin/wof-rasterzen-seed -h
