@@ -1,6 +1,6 @@
 # go-whosonfirst-rasterzen
 
-Go package for working with Who's On First files and go-rasterzen tiles.
+Go package for working with Who's On First data and `go-rasterzen` tiles.
 
 ## Install
 
