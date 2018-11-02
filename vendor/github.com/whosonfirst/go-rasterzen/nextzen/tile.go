@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/jtacoma/uritemplates"
 	"github.com/paulmach/orb/clip"
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/maptile"
@@ -11,28 +12,80 @@ import (
 	"github.com/tidwall/sjson"
 	"io"
 	"io/ioutil"
-	_ "log"
-	_ "net/http"
+	"log"
+	"net/http"
+	"net/http/httputil"
 )
 
-func FetchTile(z int, x int, y int, api_key string) (io.ReadCloser, error) {
+type Options struct {
+	ApiKey      string
+	Origin      string
+	Debug       bool
+	URITemplate *uritemplates.UriTemplate
+}
+
+var default_endpoint *uritemplates.UriTemplate
+
+func init() {
+
+	template := "https://tile.nextzen.org/tilezen/vector/v1/256/{layer}/{z}/{x}/{y}.json?api_key={apikey}"
+	default_endpoint, _ = uritemplates.Parse(template)
+}
+
+func FetchTile(z int, x int, y int, opts *Options) (io.ReadCloser, error) {
 
 	layer := "all"
 
-	url := fmt.Sprintf("https://tile.nextzen.org/tilezen/vector/v1/256/%s/%d/%d/%d.json?api_key=%s", layer, z, x, y, api_key)
+	values := make(map[string]interface{})
+	values["layer"] = "all"
+	values["apikey"] = opts.ApiKey
+	values["z"] = z
+	values["x"] = x
+	values["y"] = y
 
-	// rsp, err := http.Get(url)
+	endpoint := default_endpoint
 
-	cl, err := NewHTTPClient()
+	if opts.URITemplate != nil {
+		endpoint = opts.URITemplate
+	}
+
+	url, err := endpoint.Expand(values)
 
 	if err != nil {
 		return nil, err
 	}
 
-	rsp, err := cl.Get(url)
+	cl := new(http.Client)
+
+	req, err := http.NewRequest("GET", url, nil)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if opts.Origin != "" {
+		req.Header.Set("Origin", opts.Origin)
+	}
+
+	if opts.Debug {
+
+		dump, err := httputil.DumpRequest(req, false)
+
+		if err != nil {
+			return nil, err
+		}
+
+		log.Println(string(dump))
+	}
+
+	rsp, err := cl.Do(req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if opts.Debug {
+		log.Println(url, rsp.Status)
 	}
 
 	// for reasons I don't understand the following does not appear

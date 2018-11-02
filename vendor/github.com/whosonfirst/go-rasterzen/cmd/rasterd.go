@@ -3,7 +3,9 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/jtacoma/uritemplates"
 	"github.com/whosonfirst/go-rasterzen/http"
+	"github.com/whosonfirst/go-rasterzen/nextzen"
 	"github.com/whosonfirst/go-rasterzen/server"
 	"github.com/whosonfirst/go-whosonfirst-cache"
 	"github.com/whosonfirst/go-whosonfirst-cache-s3"
@@ -23,6 +25,8 @@ func main() {
 	var host = flag.String("host", "localhost", "The host for rasterd to listen for requests on.")
 	var port = flag.Int("port", 8080, "The port for rasterd to listen for requests on.")
 
+	do_www := flag.Bool("www", false, "Enable a simple web interface with a slippy map (at /) for testing and debugging.")
+
 	no_cache := flag.Bool("no-cache", false, "Disable all caching.")
 	go_cache := flag.Bool("go-cache", false, "Cache tiles with an in-memory (go-cache) cache.")
 	fs_cache := flag.Bool("fs-cache", false, "Cache tiles with a filesystem-based cache.")
@@ -30,6 +34,11 @@ func main() {
 	s3_cache := flag.Bool("s3-cache", false, "Cache tiles with a S3-based cache.")
 	s3_dsn := flag.String("s3-dsn", "", "A valid go-whosonfirst-aws DSN string")
 	s3_opts := flag.String("s3-opts", "", "A valid go-whosonfirst-cache-s3 options string")
+
+	nextzen_apikey := flag.String("nextzen-apikey", "", "A valid Nextzen API key.")
+	nextzen_origin := flag.String("nextzen-origin", "", "An optional HTTP 'Origin' host to pass along with your Nextzen requests.")
+	nextzen_debug := flag.Bool("nextzen-debug", false, "Log requests (to STDOUT) to Nextzen tile servers.")
+	nextzen_uri := flag.String("nextzen-uri", "", "A valid URI template (RFC 6570) pointing to a custom Nextzen endpoint.")
 
 	// fs_ttl := flag.Int("fs-ttl", 0, "The time-to-live (in seconds) for filesystem cache files. If 0 cached tiles will never expire.")
 
@@ -66,6 +75,23 @@ func main() {
 
 		*go_cache = false
 		*fs_cache = false
+	}
+
+	nz_opts := &nextzen.Options{
+		ApiKey: *nextzen_apikey,
+		Origin: *nextzen_origin,
+		Debug:  *nextzen_debug,
+	}
+
+	if *nextzen_uri != "" {
+
+		template, err := uritemplates.Parse(*nextzen_uri)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		nz_opts.URITemplate = template
 	}
 
 	caches := make([]cache.Cache, 0)
@@ -152,13 +178,21 @@ func main() {
 		log.Fatal(err)
 	}
 
+	dh, err := http.NewDispatchHandler(c)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	dh.NextzenOptions = nz_opts
+
 	mux := gohttp.NewServeMux()
 
 	if *png_handler {
 
 		log.Println("enable PNG handler")
 
-		h, err := http.PNGHandler(c)
+		h, err := http.PNGHandler(dh)
 
 		if err != nil {
 			log.Fatal(err)
@@ -171,7 +205,7 @@ func main() {
 
 		log.Println("enable SVG handler")
 
-		h, err := http.SVGHandler(c)
+		h, err := http.SVGHandler(dh)
 
 		if err != nil {
 			log.Fatal(err)
@@ -184,13 +218,53 @@ func main() {
 
 		log.Println("enable GeoJSON handler")
 
-		h, err := http.GeoJSONHandler(c)
+		h, err := http.GeoJSONHandler(dh)
 
 		if err != nil {
 			log.Fatal(err)
 		}
 
 		mux.Handle(*path_geojson, h)
+	}
+
+	if *do_www {
+
+		// We have (need) two separate handlers (and by extension bundled assets
+		// in ur go binary tools) for the www handler which is not great but that's
+		// it goes sometimes. The first is a standard "static" assets (js, css)
+		// wrapper than unfortunately needs to be stored in http/assetsfs.go because
+		// of namespaces and private function names. The second is a bundled Go
+		// template (index.html) specifically so we can assign a nextzen API key.
+		// I suppose we could have also written a middleware handler to modify
+		// something coming out of the (first) static asset bundle but I'm not convinced
+		// that isn't more confusing that this set up. The static bundle depends
+		// on 'go-bindata-assetfs' and the template bundle uses 'go-bindata-html-template'.
+		// As the names suggest everything uses 'go-bindata'. If you make changes to any
+		// of the static assets or the templates you'll need to rebuild them using the
+		// handy 'make assets bin' or 'make rebuild' Makefile targets. Good times...
+		// (20181102/thisisaaronland)
+		
+		if *nextzen_apikey == "" {
+			log.Fatal("You must pass a -nextzen-apikey parameter for the local www server to work")
+		}
+		
+		log.Println("enable WWW handler")
+
+		static_h, err := http.StaticHandler()
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		www_h, err := http.WWWHandler(*nextzen_apikey)
+
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		mux.Handle("/javascript/", static_h)
+		mux.Handle("/css/", static_h)
+		mux.Handle("/", www_h)
 	}
 
 	address := fmt.Sprintf("http://%s:%d", *host, *port)

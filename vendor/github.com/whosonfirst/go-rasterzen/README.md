@@ -81,6 +81,14 @@ Usage of ./bin/rasterd:
     	The host for rasterd to listen for requests on. (default "localhost")
   -httptest.serve string
     	if non-empty, httptest.NewServer serves on this address and blocks
+  -nextzen-apikey string
+    	A valid Nextzen API key.
+  -nextzen-debug
+    	Log requests (to STDOUT) to Nextzen tile servers.
+  -nextzen-origin string
+    	An optional HTTP 'Origin' host to pass along with your Nextzen requests.
+  -nextzen-uri string
+    	A valid URI template (RFC 6570) pointing to a custom Nextzen endpoint.
   -no-cache
     	Disable all caching.
   -path-geojson string
@@ -105,6 +113,8 @@ Usage of ./bin/rasterd:
     	A valid ini-style config file section. (default "rasterd")
   -svg-handler
     	Enable the SVG tile handler. (default true)
+  -www
+    	Enable a simple web interface with a slippy map (at /) for testing and debugging.
 ```
 
 A simple HTTP server for delivering rasterized Netzen vector (TMS or "slippy map") tiles.
@@ -199,6 +209,62 @@ $> ll ./cache/nextzen/13/*/*.json
 </html>
 ```
 
+### rasterzen-seed
+
+Pre-seed one or more rasterzen tiles (and their SVG or PNG derivatives).
+
+```
+$> ./bin/rasterzen-seed -h
+Usage of ./bin/rasterzen-seed:
+  -extent value
+    	One or more extents to fetch tiles for. Extents should be passed as comma-separated 'minx,miny,maxx,maxy' strings.
+  -fs-cache
+    	Cache tiles with a filesystem-based cache.
+  -fs-root string
+    	The root of your filesystem cache. If empty rasterd will try to use the current working directory.
+  -go-cache
+    	Cache tiles with an in-memory (go-cache) cache.
+  -max-zoom int
+    	The maximum zoom level to fetch for a tile extent. (default 16)
+  -min-zoom int
+    	The minimum zoom level to fetch for a tile extent. (default 1)
+  -mode string
+    	Valid modes are: extent, tiles. (default "tiles")
+  -nextzen-apikey string
+    	A valid Nextzen API key.
+  -nextzen-debug
+    	Log requests (to STDOUT) to Nextzen tile servers.
+  -nextzen-origin string
+    	An optional HTTP 'Origin' host to pass along with your Nextzen requests.
+  -nextzen-uri string
+    	A valid URI template (RFC 6570) pointing to a custom Nextzen endpoint.
+  -s3-cache
+    	Cache tiles with a S3-based cache.
+  -s3-dsn string
+    	A valid go-whosonfirst-aws DSN string
+  -s3-opts string
+    	A valid go-whosonfirst-cache-s3 options string
+  -seed-png
+    	Seed PNG tiles.
+  -seed-svg
+    	Seed SVG tiles. (default true)
+  -seed-workers int
+    	The maximum number of concurrent workers to invoke when seeding tiles (default 100)
+```
+
+For example:
+
+```
+$> ./bin/rasterzen-seed -fs-cache -fs-root cache -nextzen-apikey {NEXTZEN_APIKEY} -mode extent -extent '-73.9475518701 45.4145906777 -73.4761975429 45.7037982616' -zoom 10 -zoom 11 -zoom 12 -seed-png
+2018/11/01 12:35:27 enable filesystem cache layer
+2018/11/01 12:35:27 BUNK GEOMETRY (collect)
+2018/11/01 12:35:27 BUNK GEOMETRY (process)
+2018/11/01 12:36:22 OK {10 303 365}
+2018/11/01 12:36:28 OK {12 1206 1462}
+2018/11/01 12:36:29 OK {12 1206 1463}
+...and so on
+```
+
 ## Docker
 
 Not yet.
@@ -275,6 +341,16 @@ This [redefines the default `createTile`
 method](https://leafletjs.com/examples/extending/extending-2-layers.html) to
 fetch the tile in question with the correct `Accept:` header discussed above and
 then hands the resulting image back to Leaflet. Computers, right... ?
+
+## Nextzen options
+
+### URI Templates
+
+The default Nextzen URI template looks like this:
+
+```
+https://tile.nextzen.org/tilezen/vector/v1/256/{layer}/{z}/{x}/{y}.json?api_key={apikey}
+```
 
 ## See also
 
