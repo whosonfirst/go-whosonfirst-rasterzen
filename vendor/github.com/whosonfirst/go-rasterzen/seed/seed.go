@@ -4,8 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-spatial/geom/slippy"
-	"github.com/whosonfirst/go-rasterzen/nextzen"
-	"github.com/whosonfirst/go-whosonfirst-cache"
+	"github.com/whosonfirst/go-rasterzen/worker"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"sync"
 	"sync/atomic"
@@ -57,27 +56,27 @@ func (ts *TileSet) Count() int32 {
 }
 
 type TileSeeder struct {
-	Cache          cache.Cache
-	MaxWorkers        int
-	NextzenOptions *nextzen.Options
-	SeedSVG        bool
-	SeedPNG        bool
-	Timings        bool
-	Logger         *log.WOFLogger
+	worker        worker.Worker
+	MaxWorkers    int
+	SeedRasterzen bool
+	SeedSVG       bool
+	SeedPNG       bool
+	Timings       bool
+	Logger        *log.WOFLogger
 }
 
-func NewTileSeeder(c cache.Cache, nz_opts *nextzen.Options) (*TileSeeder, error) {
+func NewTileSeeder(w worker.Worker) (*TileSeeder, error) {
 
 	logger := log.SimpleWOFLogger()
 
 	s := TileSeeder{
-		Cache:          c,
-		NextzenOptions: nz_opts,
-		SeedSVG:        true,
-		SeedPNG:        false,
-		MaxWorkers:        100,
-		Timings:        false,
-		Logger:         logger,
+		worker:        w,
+		SeedRasterzen: true,
+		SeedSVG:       true,
+		SeedPNG:       false,
+		MaxWorkers:    100,
+		Timings:       false,
+		Logger:        logger,
 	}
 
 	return &s, nil
@@ -90,7 +89,7 @@ func (s *TileSeeder) SeedTileSet(ts *TileSet) (bool, []error) {
 		t1 := time.Now()
 
 		defer func() {
-			s.Logger.Status("Time to seed all tiles %v\n", time.Since(t1))
+			s.Logger.Status("Time to seed all tiles %v", time.Since(t1))
 		}()
 	}
 
@@ -118,7 +117,7 @@ func (s *TileSeeder) SeedTileSet(ts *TileSet) (bool, []error) {
 				t1 := time.Now()
 
 				defer func() {
-					s.Logger.Status("Time to seed tile (%v) %v\n", t, time.Since(t1))
+					s.Logger.Status("Time to seed tile (%v) %v", t, time.Since(t1))
 				}()
 			}
 
@@ -127,12 +126,14 @@ func (s *TileSeeder) SeedTileSet(ts *TileSet) (bool, []error) {
 				throttle <- true
 			}()
 
-			err := s.SeedTile(t)
+			ok, errs := s.seedTiles(t)
 
-			if err != nil {
-				msg := fmt.Sprintf("Unabled to seed %v because %s", t, err)
-				err_ch <- errors.New(msg)
-				return
+			if !ok {
+
+				for _, e := range errs {
+					msg := fmt.Sprintf("Unabled to seed %v because %s", t, e)
+					err_ch <- errors.New(msg)
+				}
 			}
 
 		}(t, throttle, done_ch, err_ch)
@@ -159,43 +160,66 @@ func (s *TileSeeder) SeedTileSet(ts *TileSet) (bool, []error) {
 	return ok, errors
 }
 
-// this is basically the http/cache.go GetTileForRequest() function so once we
-// have it working here then we should reconcile the two pieces of code...
-// (20181101/thisisaaronland)
+func (s *TileSeeder) seedTiles(t slippy.Tile) (bool, []error) {
 
-// something something something what to do about SVG and PNG tiles?
-// (20181101/thisisaaronland)
+	if s.SeedRasterzen {
 
-func (s *TileSeeder) SeedTile(t slippy.Tile) error {
-
-	if !s.SeedSVG && !s.SeedPNG {
-
-		_, err := SeedRasterzen(t, s.Cache, s.NextzenOptions)
+		err := s.worker.RenderRasterzenTile(t)
 
 		if err != nil {
-			return err
+			return false, []error{err}
 		}
+	}
+
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+
+	remaining := 0
+
+	if s.SeedPNG {
+
+		remaining += 1
+
+		go func() {
+			err := s.worker.RenderPNGTile(t)
+
+			if err != nil {
+				err_ch <- err
+			}
+
+			done_ch <- true
+		}()
 	}
 
 	if s.SeedSVG {
 
-		_, err := SeedSVG(t, s.Cache, s.NextzenOptions)
+		remaining += 1
 
-		if err != nil {
-			return err
-		}
+		go func() {
 
+			err := s.worker.RenderSVGTile(t)
+
+			if err != nil {
+				err_ch <- err
+			}
+
+			done_ch <- true
+		}()
 	}
 
-	if s.SeedPNG {
+	errors := make([]error, 0)
 
-		_, err := SeedPNG(t, s.Cache, s.NextzenOptions)
-
-		if err != nil {
-			return err
+	for remaining > 0 {
+		select {
+		case <-done_ch:
+			remaining -= 1
+		case e := <-err_ch:
+			errors = append(errors, e)
+		default:
+			// pass
 		}
-
 	}
 
-	return nil
+	ok := len(errors) == 0
+	return ok, errors
 }

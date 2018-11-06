@@ -9,11 +9,12 @@ self:   prep rmdeps
 	mkdir -p src/github.com/whosonfirst/go-rasterzen
 	cp *.go src/github.com/whosonfirst/go-rasterzen/
 	cp -r assets src/github.com/whosonfirst/go-rasterzen/
-	cp -r nextzen src/github.com/whosonfirst/go-rasterzen/
-	cp -r tile src/github.com/whosonfirst/go-rasterzen/
 	cp -r http src/github.com/whosonfirst/go-rasterzen/
+	cp -r nextzen src/github.com/whosonfirst/go-rasterzen/
 	cp -r seed src/github.com/whosonfirst/go-rasterzen/
 	cp -r server src/github.com/whosonfirst/go-rasterzen/
+	cp -r tile src/github.com/whosonfirst/go-rasterzen/
+	cp -r worker src/github.com/whosonfirst/go-rasterzen/
 	cp -r vendor/* src/
 
 rmdeps:
@@ -30,6 +31,7 @@ deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/geojson2svg/pkg/geojson2svg"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-cache-s3"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-cli"
+	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-aws"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-whosonfirst-log"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/algnhsa"
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-bindata"
@@ -37,6 +39,11 @@ deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-bindata-html-template"
 	@GOPATH=$(GOPATH) go get -u "github.com/jtacoma/uritemplates"
 	rm -rf src/github.com/whosonfirst/go-bindata/testdata
+	# mv src/github.com/whosonfirst/go-whosonfirst-cache-s3/vendor/github.com/whosonfirst/go-whosonfirst-aws src/github.com/whosonfirst/
+	# mv src/github.com/whosonfirst/go-whosonfirst-cache-s3/vendor/github.com/aws/aws-sdk-go src/github.com/aws/
+	mv src/github.com/whosonfirst/go-whosonfirst-aws/vendor/github.com/aws/aws-sdk-go src/github.com/aws/
+	rm -rf src/github.com/whosonfirst/go-whosonfirst-cache-s3/vendor/github.com/whosonfirst/go-whosonfirst-aws
+	rm -rf src/github.com/whosonfirst/go-whosonfirst-cache-s3/vendor/github.com/aws/aws-sdk-go
 	mv src/github.com/whosonfirst/go-whosonfirst-cache-s3/vendor/github.com/whosonfirst/go-whosonfirst-cache src/github.com/whosonfirst/
 
 # if you're wondering about the 'rm -rf' stuff below it's because Go is
@@ -57,6 +64,7 @@ fmt:
 	go fmt tile/*.go
 	go fmt server/*.go
 	go fmt nextzen/*.go
+	go fmt worker/*.go
 
 # See notes in cmd/rasterd.go (20181102/thisisaaronland)
 

@@ -6,9 +6,10 @@ import (
 	"errors"
 	"github.com/go-spatial/geom/slippy"
 	"github.com/whosonfirst/go-rasterzen/nextzen"
-	"github.com/whosonfirst/go-rasterzen/seed"
+	"github.com/whosonfirst/go-rasterzen/tile"
 	"github.com/whosonfirst/go-whosonfirst-cache"
 	"io"
+	"io/ioutil"
 	"log"
 	gohttp "net/http"
 	"regexp"
@@ -57,6 +58,16 @@ func (h *DispatchHandler) HandleRequest(rsp gohttp.ResponseWriter, req *gohttp.R
 
 	// log.Println("GET", key, err, cache.IsCacheMiss(err), cache.IsCacheMissMulti(err))
 
+	var out io.Writer
+	out = rsp
+
+	url := req.URL
+	query := url.Query()
+
+	if query.Get("discard") != "" {
+		out = ioutil.Discard
+	}
+
 	if err == nil || cache.IsCacheMissMulti(err) {
 
 		defer data.Close()
@@ -68,14 +79,14 @@ func (h *DispatchHandler) HandleRequest(rsp gohttp.ResponseWriter, req *gohttp.R
 		}
 
 		if !cache.IsCacheMissMulti(err) {
-			_, err = io.Copy(rsp, data)
+			_, err = io.Copy(out, data)
 			return err
 		}
 
 		var b bytes.Buffer
 		buf := bufio.NewWriter(&b)
 
-		wr := io.MultiWriter(rsp, buf)
+		wr := io.MultiWriter(out, buf)
 
 		_, err = io.Copy(wr, data)
 
@@ -120,7 +131,7 @@ func (h *DispatchHandler) HandleRequest(rsp gohttp.ResponseWriter, req *gohttp.R
 		nz_opts.ApiKey = api_key
 	}
 
-	fh, err := seed.SeedRasterzen(*t, h.Cache, nz_opts)
+	fh, err := tile.RenderRasterzenTile(*t, h.Cache, nz_opts)
 
 	if err != nil {
 		return err
@@ -135,7 +146,7 @@ func (h *DispatchHandler) HandleRequest(rsp gohttp.ResponseWriter, req *gohttp.R
 	var b bytes.Buffer
 	buf := bufio.NewWriter(&b)
 
-	wr := io.MultiWriter(rsp, buf)
+	wr := io.MultiWriter(out, buf)
 
 	// this is the thing that transforms the rasterzen
 	// tile in to geojson, svg, png, etc.
@@ -148,10 +159,12 @@ func (h *DispatchHandler) HandleRequest(rsp gohttp.ResponseWriter, req *gohttp.R
 		return err
 	}
 
+	// log.Println("SET CACHE", key)
+
 	_, cache_err := h.Cache.Set(key, cache.NewReadCloser(b.Bytes()))
 
 	if cache_err != nil {
-		log.Printf("%s %v\n", key, cache_err)
+		log.Printf("FAILED TO SET %s %v\n", key, cache_err)
 	}
 
 	return nil
