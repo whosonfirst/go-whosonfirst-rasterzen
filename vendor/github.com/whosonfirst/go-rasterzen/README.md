@@ -14,6 +14,10 @@ document to a PNG file. It uses (a patched version of) the
 [geojson2svg](https://github.com/whosonfirst/geojson2svg) and
 [oksvg](https://github.com/srwiley/oksvg) packages respectively to do this.
 
+To read about this package being used in production you should read the following blog posts:
+
+* [Maps (and map tiles) at SFO Museum](https://millsfield.sfomuseum.org/blog/2018/07/31/maps/)
+
 Some important caveats:
 
 * It's also not possible to style any of the data beyond black outlines with transparent backgrounds.
@@ -31,34 +35,6 @@ make bin
 ```
 
 All of this package's dependencies are bundled with the code in the `vendor` directory.
-
-## Example
-
-```
-package main
-
-import (
-	"flag"
-	"github.com/whosonfirst/go-rasterzen/tile"
-	"log"
-	"os"
-)
-
-func main() {
-
-	flag.Parse()
-
-	for _, path := range flag.Args() {
-
-		fh, _ := os.Open(path)
-		defer fh.Close()
-
-		tile.ToSVG(fh, os.Stdout)
-	}
-}
-```
-
-_Error handling has been removed for the sake of brevity._
 
 ## Tools
 
@@ -351,7 +327,8 @@ https://tile.nextzen.org/tilezen/vector/v1/256/{layer}/{z}/{x}/{y}.json?api_key=
 
 ## See also
 
-* https://github.com/fapian/geojson2svg
-* https://github.com/srwiley/oksvg
 * https://developers.nextzen.org/
 * https://mapzen.com/documentation/vector-tiles/layers/
+* https://github.com/whosonfirst/go-whosonfirst-rasterzen
+* https://github.com/fapian/geojson2svg
+* https://github.com/srwiley/oksvg
