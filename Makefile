@@ -20,6 +20,9 @@ deps:
 	@GOPATH=$(GOPATH) go get -u "github.com/whosonfirst/go-rasterzen"
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/go-spatial src/github.com/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/jtacoma src/github.com/
+	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/aws src/github.com/
+	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-cli src/github.com/whosonfirst/
+	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-aws src/github.com/whosonfirst/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-log src/github.com/whosonfirst/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-cache src/github.com/whosonfirst/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-cache-s3 src/github.com/whosonfirst/
