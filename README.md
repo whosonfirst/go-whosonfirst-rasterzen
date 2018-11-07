@@ -14,6 +14,11 @@ make bin
 
 This is work in progress. It works. Until it doesn't.
 
+For background, you should read the following blog posts:
+
+* [Maps (and map tiles) at SFO Museum](https://millsfield.sfomuseum.org/blog/2018/07/31/maps/)
+* [Sweet spots between the extremes](https://millsfield.sfomuseum.org/blog/2018/11/07/rasterzen/)
+
 ## Tools
 
 ### wof-rasterzen-seed
