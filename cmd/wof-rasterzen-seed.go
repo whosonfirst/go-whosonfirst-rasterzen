@@ -8,6 +8,7 @@ import (
 	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/slippy"
 	"github.com/jtacoma/uritemplates"
+	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-rasterzen/nextzen"
 	"github.com/whosonfirst/go-rasterzen/seed"
 	"github.com/whosonfirst/go-rasterzen/worker"
@@ -53,6 +54,12 @@ func main() {
 
 	var lambda_dsn flags.DSNString
 	flag.Var(&lambda_dsn, "lambda-dsn", "A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION'")
+
+	var exclude flags.KeyValueArgs
+	var include flags.KeyValueArgs
+	
+	flag.Var(&exclude, "exclude", "...")
+	flag.Var(&include, "include", "...")
 
 	lambda_function := flag.String("lambda-function", "Rasterzen", "A valid AWS Lambda function name.")
 
@@ -224,6 +231,32 @@ func main() {
 
 		if err != nil {
 			return err
+		}
+
+		for _, e := range exclude {
+
+			path := e.Key
+			test := e.Value
+
+			rsp := gjson.GetBytes(f.Bytes(), path)
+
+			if rsp.Exists() && rsp.String() == test {
+				logger.Status("SKIP %s", f.Id())
+				return nil
+			}
+		}
+
+		for _, i := range include {
+
+			path := i.Key
+			test := i.Value
+
+			rsp := gjson.GetBytes(f.Bytes(), path)
+
+			if rsp.Exists() && rsp.String() != test {
+				logger.Status("SKIP %s", f.Id())
+				return nil
+			}
 		}
 
 		bboxes, err := f.BoundingBoxes()
