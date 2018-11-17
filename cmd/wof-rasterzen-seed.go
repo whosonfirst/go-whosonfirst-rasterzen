@@ -262,25 +262,38 @@ func main() {
 			rsp := gjson.GetBytes(f.Bytes(), path)
 
 			if rsp.Exists() && rsp.String() == test {
-				logger.Status("SKIP %s (%s) because %s == %s", f.Name(), f.Id(), path, test)
+				logger.Status("%s (%s) is being exluded because it matches the %s=%s -exclude test", f.Name(), f.Id(), path, test)
 				return nil
 			}
 		}
 
-		for _, i := range include {
+		if len(include) > 0 {
 
-			path := i.Key
-			test := i.Value
+			include_ok := false
 
-			rsp := gjson.GetBytes(f.Bytes(), path)
+			for _, i := range include {
 
-			if !rsp.Exists() {
-				logger.Status("SKIP %s (%s) because %s does not exist", f.Name(), f.Id(), path)
-				return nil
+				path := i.Key
+				test := i.Value
+
+				rsp := gjson.GetBytes(f.Bytes(), path)
+
+				if !rsp.Exists() {
+					logger.Status("%s (%s) fails -include test because %s does not exist", f.Name(), f.Id(), path)
+					continue
+				}
+
+				if rsp.String() != test {
+					logger.Status("%s (%s) fails -include test because %s != %s (is %s)", f.Name(), f.Id(), path, test, rsp.String())
+					continue
+				}
+
+				include_ok = true
+				break
 			}
 
-			if rsp.String() != test {
-				logger.Status("SKIP %s (%s) because %s != %s (is %s)", f.Name(), f.Id(), path, test, rsp.String())
+			if !include_ok {
+				logger.Status("%s (%s) is being excluded because all -include tests failed", f.Name(), f.Id())
 				return nil
 			}
 		}
