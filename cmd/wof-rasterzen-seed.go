@@ -17,7 +17,9 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-cli/flags"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-index"
+	"github.com/whosonfirst/go-whosonfirst-index/utils"
 	"github.com/whosonfirst/go-whosonfirst-log"
+	"github.com/whosonfirst/warning"
 	"io"
 	"os"
 	"strings"
@@ -29,7 +31,7 @@ func main() {
 	var min_zoom = flag.Int("min-zoom", 1, "")
 	var max_zoom = flag.Int("max-zoom", 16, "")
 
-	var count = flag.Bool("count", false, "")
+	var count = flag.Bool("count", false, "Display the number of tiles to process and exit.")
 
 	nextzen_apikey := flag.String("nextzen-apikey", "", "A valid Nextzen API key.")
 	nextzen_origin := flag.String("nextzen-origin", "", "An optional HTTP 'Origin' host to pass along with your Nextzen requests.")
@@ -57,9 +59,9 @@ func main() {
 
 	var exclude flags.KeyValueArgs
 	var include flags.KeyValueArgs
-	
-	flag.Var(&exclude, "exclude", "...")
-	flag.Var(&include, "include", "...")
+
+	flag.Var(&exclude, "exclude", "Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.")
+	flag.Var(&include, "include", "Include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.")
 
 	lambda_function := flag.String("lambda-function", "Rasterzen", "A valid AWS Lambda function name.")
 
@@ -227,10 +229,29 @@ func main() {
 			// pass
 		}
 
-		f, err := feature.LoadFeatureFromReader(fh)
+		principal, err := utils.IsPrincipalWOFRecord(fh, ctx)
 
 		if err != nil {
 			return err
+		}
+
+		if !principal {
+			return nil
+		}
+
+		f, err := feature.LoadFeatureFromReader(fh)
+
+		if err != nil {
+
+			if !warning.IsWarning(err) {
+
+				path, _ := index.PathForContext(ctx)
+
+				logger.Warning("%s triggered a critical error (%s)", path, err)
+				return err
+			}
+
+			logger.Warning(err)
 		}
 
 		for _, e := range exclude {
@@ -241,7 +262,7 @@ func main() {
 			rsp := gjson.GetBytes(f.Bytes(), path)
 
 			if rsp.Exists() && rsp.String() == test {
-				logger.Status("SKIP %s", f.Id())
+				logger.Status("SKIP %s (%s) because %s == %s", f.Name(), f.Id(), path, test)
 				return nil
 			}
 		}
@@ -253,8 +274,13 @@ func main() {
 
 			rsp := gjson.GetBytes(f.Bytes(), path)
 
-			if rsp.Exists() && rsp.String() != test {
-				logger.Status("SKIP %s", f.Id())
+			if !rsp.Exists() {
+				logger.Status("SKIP %s (%s) because %s does not exist", f.Name(), f.Id(), path)
+				return nil
+			}
+
+			if rsp.String() != test {
+				logger.Status("SKIP %s (%s) because %s != %s (is %s)", f.Name(), f.Id(), path, test, rsp.String())
 				return nil
 			}
 		}
@@ -305,7 +331,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	
+
 	ok, errors := seeder.SeedTileSet(ctx, ts)
 
 	if !ok {

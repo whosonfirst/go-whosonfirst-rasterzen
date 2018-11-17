@@ -29,13 +29,17 @@ Pre-seed [go-rasterzen](https://github.com/whosonfirst/go-rasterzen) tiles (and 
 ./bin/wof-rasterzen-seed -h
 Usage of ./bin/wof-rasterzen-seed:
   -count
-    	
+    	   Display the number of tiles to process and exit.
+  -exclude value
+    	   Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.    	
   -fs-cache
     	Cache tiles with a filesystem-based cache.
   -fs-root string
     	The root of your filesystem cache. If empty rasterd will try to use the current working directory.
   -go-cache
     	Cache tiles with an in-memory (go-cache) cache.
+  -include value
+    	   Include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.
   -max-zoom int
     	 (default 16)
   -min-zoom int
@@ -78,6 +82,25 @@ Or if you just want to know how many tiles you'll end up fetching:
 ```
 ./bin/wof-rasterzen-seed -fs-cache -fs-root cache -nextzen-apikey {APIKEY} -max-zoom 10 -count -mode repo /usr/local/data/sfomuseum-data-whosonfirst/
 164993
+```
+
+### Filtering records
+
+You can filter records to process by passing one or more `-include` or `-exclude` flags. The `-exclude` flag will exclude records not matching one or path '{PATH}={VALUE}' statements. The `-include` flag will include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the `gjson` package's 'dot' syntax. For example:
+
+```
+./bin/wof-rasterzen-seed -count -max-zoom 10 -include 'properties.wof:placetype=country' /usr/local/data/sfomuseum-data-whosonfirst/
+00:16:49.630981 [wof-rasterzen-seed] STATUS SKIP Dayton (101712161) because properties.wof:placetype != country (is locality)
+00:16:49.727171 [wof-rasterzen-seed] STATUS SKIP Columbus (101712381) because properties.wof:placetype != country (is locality)
+00:16:49.741976 [wof-rasterzen-seed] STATUS SKIP Middletown (101712653) because properties.wof:placetype != country (is locality)
+00:16:49.749884 [wof-rasterzen-seed] STATUS SKIP Portland (101715829) because properties.wof:placetype != country (is locality)
+00:16:49.765511 [wof-rasterzen-seed] STATUS SKIP McMinnville (101716117) because properties.wof:placetype != country (is locality)
+...and so on
+...time passes
+00:18:37.793127 [wof-rasterzen-seed] STATUS SKIP Mills Field Municipal Airport of San Francisco (1360695653) because properties.wof:placetype != country (is campus)
+00:18:37.804110 [wof-rasterzen-seed] STATUS SKIP San Francisco Airport (1360695655) because properties.wof:placetype != country (is campus)
+00:18:37.815119 [wof-rasterzen-seed] STATUS SKIP Denver Stapleton International Airport (1360695657) because properties.wof:placetype != country (is campus)
+152956
 ```
 
 ## See also

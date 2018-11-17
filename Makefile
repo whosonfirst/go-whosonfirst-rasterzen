@@ -22,6 +22,7 @@ deps:
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/jtacoma src/github.com/
 	mv src/github.com/whosonfirst/go-whosonfirst-geojson-v2/vendor/github.com/tidwall src/github.com/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/aws src/github.com/
+	mv src/github.com/whosonfirst/go-whosonfirst-geojson-v2/vendor/github.com/whosonfirst/warning src/github.com/whosonfirst/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-cli src/github.com/whosonfirst/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-aws src/github.com/whosonfirst/
 	mv src/github.com/whosonfirst/go-rasterzen/vendor/github.com/whosonfirst/go-whosonfirst-log src/github.com/whosonfirst/
