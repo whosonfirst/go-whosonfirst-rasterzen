@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/go-spatial/geom/slippy"
+	"github.com/whosonfirst/go-rasterzen/tile"
 	"github.com/whosonfirst/go-rasterzen/worker"
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"sync"
@@ -60,8 +61,11 @@ type TileSeeder struct {
 	worker        worker.Worker
 	MaxWorkers    int
 	SeedRasterzen bool
+	SeedGeoJSON   bool
+	SeedExtent    bool
 	SeedSVG       bool
 	SeedPNG       bool
+	SVGOptions    *tile.RasterzenSVGOptions
 	Timings       bool
 	Logger        *log.WOFLogger
 }
@@ -232,6 +236,36 @@ func (s *TileSeeder) seedTiles(t slippy.Tile) (bool, []error) {
 	err_ch := make(chan error)
 
 	remaining := 0
+
+	if s.SeedGeoJSON {
+
+		remaining += 1
+
+		go func() {
+			err := s.worker.RenderGeoJSONTile(t)
+
+			if err != nil {
+				err_ch <- err
+			}
+
+			done_ch <- true
+		}()
+	}
+
+	if s.SeedExtent {
+
+		remaining += 1
+
+		go func() {
+			err := s.worker.RenderExtentTile(t)
+
+			if err != nil {
+				err_ch <- err
+			}
+
+			done_ch <- true
+		}()
+	}
 
 	if s.SeedPNG {
 

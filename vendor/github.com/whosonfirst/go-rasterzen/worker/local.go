@@ -10,16 +10,18 @@ import (
 type LocalWorker struct {
 	Worker
 	nextzen_options *nextzen.Options
+	svg_options     *tile.RasterzenSVGOptions
 	cache           cache.Cache
 	SeedSVG         bool
 	SeedPNG         bool
 }
 
-func NewLocalWorker(c cache.Cache, nz_opts *nextzen.Options) (Worker, error) {
+func NewLocalWorker(c cache.Cache, nz_opts *nextzen.Options, svg_opts *tile.RasterzenSVGOptions) (Worker, error) {
 
 	w := LocalWorker{
 		cache:           c,
 		nextzen_options: nz_opts,
+		svg_options:     svg_opts,
 		SeedSVG:         true,
 		SeedPNG:         false,
 	}
@@ -33,9 +35,21 @@ func (w *LocalWorker) RenderRasterzenTile(t slippy.Tile) error {
 	return err
 }
 
+func (w *LocalWorker) RenderGeoJSONTile(t slippy.Tile) error {
+
+	_, err := tile.RenderGeoJSONTile(t, w.cache, w.nextzen_options)
+	return err
+}
+
+func (w *LocalWorker) RenderExtentTile(t slippy.Tile) error {
+
+	_, err := tile.RenderExtentTile(t, w.cache, w.nextzen_options)
+	return err
+}
+
 func (w *LocalWorker) RenderSVGTile(t slippy.Tile) error {
 
-	_, err := tile.RenderSVGTile(t, w.cache, w.nextzen_options)
+	_, err := tile.RenderSVGTile(t, w.cache, w.nextzen_options, w.svg_options)
 	return err
 }
 

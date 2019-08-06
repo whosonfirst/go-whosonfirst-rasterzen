@@ -42,9 +42,10 @@ type LambdaWorker struct {
 	client          *lambda.Lambda
 	cache           cache.Cache
 	nextzen_options *nextzen.Options
+	svg_options     *tile.RasterzenSVGOptions
 }
 
-func NewLambdaWorker(dsn map[string]string, function string, c cache.Cache, nz_opts *nextzen.Options) (Worker, error) {
+func NewLambdaWorker(dsn map[string]string, function string, c cache.Cache, nz_opts *nextzen.Options, svg_opts *tile.RasterzenSVGOptions) (Worker, error) {
 
 	creds, ok := dsn["credentials"]
 
@@ -71,6 +72,7 @@ func NewLambdaWorker(dsn map[string]string, function string, c cache.Cache, nz_o
 		function:        function,
 		cache:           c,
 		nextzen_options: nz_opts,
+		svg_options:     svg_opts,
 	}
 
 	return &w, nil
@@ -78,6 +80,14 @@ func NewLambdaWorker(dsn map[string]string, function string, c cache.Cache, nz_o
 
 func (w *LambdaWorker) RenderRasterzenTile(t slippy.Tile) error {
 	return w.renderTile(t, "rasterzen", "json")
+}
+
+func (w *LambdaWorker) RenderGeoJSONTile(t slippy.Tile) error {
+	return w.renderTile(t, "geojson", "geojson")
+}
+
+func (w *LambdaWorker) RenderExtentTile(t slippy.Tile) error {
+	return w.renderTile(t, "extent", "geojson")
 }
 
 func (w *LambdaWorker) RenderSVGTile(t slippy.Tile) error {

@@ -109,9 +109,11 @@ func FetchTile(z int, x int, y int, opts *Options) (io.ReadCloser, error) {
 func CropTile(z int, x int, y int, fh io.ReadCloser) (io.ReadCloser, error) {
 
 	zm := maptile.Zoom(uint32(z))
-	tl := maptile.Tile{uint32(x), uint32(y), zm}
+	tl := maptile.New(uint32(x), uint32(y), zm)
 
 	bounds := tl.Bound()
+
+	// log.Println("CROP", z, x, y, bounds.Min.Lon(), bounds.Min.Lat(), bounds.Max.Lon(), bounds.Max.Lat())
 
 	body, err := ioutil.ReadAll(fh)
 

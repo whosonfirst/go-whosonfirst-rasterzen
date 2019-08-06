@@ -2,12 +2,10 @@ package flags
 
 import (
 	"errors"
-	_ "fmt"
-	_ "strconv"
 	"strings"
 )
 
-// PLEASE RECONCILE ME WITH MultiDSNString
+// PLEASE RECONCILE ME WITH MultiDSNString and dsn/DSN...
 // (20181105/thisisaaronland)
 
 type DSNString [][]string
@@ -38,7 +36,7 @@ func (m *DSNString) Set(value string) error {
 		if len(pair) != 2 {
 			return errors.New("Invalid pair")
 		}
-		
+
 		*m = append(*m, pair)
 	}
 
