@@ -188,9 +188,9 @@ Finally, assuming you haven't baked a specific `wof-rasterzen-seed` command in t
 /usr/local/bin/wof-rasterzen-seed,-seed-max-workers,25,-nextzen-apikey,{NEXTZEN_APIKEY},-seed-worker,sqs,-sqs-dsn,credentials=iam: region={AWS_REGION} queue={SQS_QUEUE},-seed-all,-min-zoom,14,-max-zoom,16,-timings,-mode,git,https://github.com/sfomuseum-data/sfomuseum-data-architecture.git
 ```
 
-See the commas between everything and the lack of quotes around the `-sqs-dsn` flag? I love that about ECS...
+_See the commas between everything and the lack of quotes around the `-sqs-dsn` flag? I love that about ECS..._
 
-The command above will fetch a copy of the `sfomuseum-data-architecture` repo, calculate all the tiles between zoom levels 14 and 16 and then "fetch" each one of those tiles using the SQS `seed-worker` which just means an entry for the tile will be created in an SQS queue and assumes you've configured the `go-rasterzen` [rasterzen-seed-sqs](https://github.com/whosonfirst/go-rasterzen/blob/master/cmd/rasterzen-seed-sqs/main.go) tool as a Lambda trigger for new queue items.
+The command above will fetch a copy of the `sfomuseum-data-architecture` repo, calculate all the tiles between zoom levels 14 and 16 (for all the WOF records in the repo) and then "fetch" each one of those tiles using the SQS `seed-worker` which just means an entry for the tile will be created in an SQS queue and assumes you've configured the `go-rasterzen` [rasterzen-seed-sqs](https://github.com/whosonfirst/go-rasterzen/blob/master/cmd/rasterzen-seed-sqs/main.go) tool as a Lambda trigger for new queue items.
 
 For a pretty picture of everything just described, see [go-rasterzen/docs/rasterzen-seed-sqs-arch.jpg ](https://github.com/whosonfirst/go-rasterzen/blob/master/docs/rasterzen-seed-sqs-arch.jpg). (Note that the image assumes the `go-rasterzen` [rasterzen-seed](https://github.com/whosonfirst/go-rasterzen#rasterzen-seed) tool which doesn't know how to seed WOF repos, but the principle is the same.)
 
