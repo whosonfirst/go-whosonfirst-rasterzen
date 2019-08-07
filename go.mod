@@ -11,7 +11,7 @@ require (
 	github.com/whosonfirst/go-whosonfirst-cache-s3 v0.0.0-20180725183234-440d3bfdb2a9
 	github.com/whosonfirst/go-whosonfirst-cli v0.1.0
 	github.com/whosonfirst/go-whosonfirst-geojson-v2 v0.10.2
-	github.com/whosonfirst/go-whosonfirst-index v0.1.2
+	github.com/whosonfirst/go-whosonfirst-index v0.1.3
 	github.com/whosonfirst/go-whosonfirst-log v0.1.0
 	github.com/whosonfirst/warning v0.1.0
 )
