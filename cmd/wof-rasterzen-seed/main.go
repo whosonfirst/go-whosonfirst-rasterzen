@@ -52,11 +52,14 @@ func main() {
 	seed_png := flag.Bool("seed-png", false, "Seed PNG tiles.")
 	seed_all := flag.Bool("seed-all", false, "See all the tile formats")
 
-	seed_worker := flag.String("seed-worker", "local", "The type of worker for seeding tiles. Valid workers are: lambda, local.")
+	seed_worker := flag.String("seed-worker", "local", "The type of worker for seeding tiles. Valid workers are: lambda, local, sqs.")
 	max_workers := flag.Int("seed-max-workers", 100, "The maximum number of concurrent workers to invoke when seeding tiles")
 
 	var lambda_dsn flags.DSNString
 	flag.Var(&lambda_dsn, "lambda-dsn", "A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION'")
+
+	var sqs_dsn flags.DSNString
+	flag.Var(&sqs_dsn, "sqs-dsn", "A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION' and 'queue=QUEUE'")
 
 	var exclude flags.KeyValueArgs
 	var include flags.KeyValueArgs
@@ -72,7 +75,6 @@ func main() {
 
 	if *seed_all {
 		*seed_rasterzen = true
-		// *seed_geojson = true
 		*seed_svg = true
 		*seed_png = true
 	}
@@ -198,6 +200,8 @@ func main() {
 		w, w_err = worker.NewLambdaWorker(lambda_dsn.Map(), *lambda_function, c, nz_opts, svg_opts)
 	case "LOCAL":
 		w, w_err = worker.NewLocalWorker(c, nz_opts, svg_opts)
+	case "SQS":
+		w, w_err = worker.NewSQSWorker(sqs_dsn.Map())
 	default:
 		w_err = errors.New("Invalid worker")
 

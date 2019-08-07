@@ -3,6 +3,7 @@ github.com/aaronland/go-string/dsn
 # github.com/aws/aws-sdk-go v1.19.31
 github.com/aws/aws-sdk-go/aws
 github.com/aws/aws-sdk-go/service/lambda
+github.com/aws/aws-sdk-go/service/sqs
 github.com/aws/aws-sdk-go/aws/awserr
 github.com/aws/aws-sdk-go/service/s3
 github.com/aws/aws-sdk-go/aws/credentials
@@ -15,6 +16,7 @@ github.com/aws/aws-sdk-go/aws/request
 github.com/aws/aws-sdk-go/aws/signer/v4
 github.com/aws/aws-sdk-go/private/protocol
 github.com/aws/aws-sdk-go/private/protocol/restjson
+github.com/aws/aws-sdk-go/private/protocol/query
 github.com/aws/aws-sdk-go/aws/session
 github.com/aws/aws-sdk-go/internal/s3err
 github.com/aws/aws-sdk-go/private/protocol/eventstream
@@ -26,20 +28,19 @@ github.com/aws/aws-sdk-go/internal/ini
 github.com/aws/aws-sdk-go/internal/shareddefaults
 github.com/aws/aws-sdk-go/internal/sdkrand
 github.com/aws/aws-sdk-go/private/protocol/jsonrpc
+github.com/aws/aws-sdk-go/private/protocol/query/queryutil
+github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/aws/corehandlers
 github.com/aws/aws-sdk-go/aws/credentials/processcreds
 github.com/aws/aws-sdk-go/aws/credentials/stscreds
 github.com/aws/aws-sdk-go/aws/csm
 github.com/aws/aws-sdk-go/aws/defaults
-github.com/aws/aws-sdk-go/private/protocol/query
-github.com/aws/aws-sdk-go/private/protocol/xml/xmlutil
 github.com/aws/aws-sdk-go/service/s3/s3iface
 github.com/aws/aws-sdk-go/private/protocol/json/jsonutil
 github.com/aws/aws-sdk-go/service/sts
 github.com/aws/aws-sdk-go/aws/credentials/ec2rolecreds
 github.com/aws/aws-sdk-go/aws/credentials/endpointcreds
 github.com/aws/aws-sdk-go/aws/ec2metadata
-github.com/aws/aws-sdk-go/private/protocol/query/queryutil
 github.com/aws/aws-sdk-go/internal/sdkuri
 # github.com/go-ini/ini v1.42.0
 github.com/go-ini/ini
@@ -83,9 +84,9 @@ github.com/tidwall/match
 github.com/tidwall/pretty
 # github.com/tidwall/sjson v1.0.4
 github.com/tidwall/sjson
-# github.com/whosonfirst/geojson2svg v1.0.1
+# github.com/whosonfirst/geojson2svg v1.0.2
 github.com/whosonfirst/geojson2svg/pkg/geojson2svg
-# github.com/whosonfirst/go-rasterzen v0.1.5
+# github.com/whosonfirst/go-rasterzen v0.1.6
 github.com/whosonfirst/go-rasterzen/nextzen
 github.com/whosonfirst/go-rasterzen/seed
 github.com/whosonfirst/go-rasterzen/tile

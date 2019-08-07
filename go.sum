@@ -97,11 +97,15 @@ github.com/tidwall/sjson v1.0.4/go.mod h1:bURseu1nuBkFpIES5cz6zBtjmYeOQmEESshn7V
 github.com/whosonfirst/algnhsa v0.0.0-20190203000000-70f315bb89bd75b93a0ca381cf70a15b68209c32/go.mod h1:rSpxyVD5tlAHQ8D4Oh2tiw65NDqSfftyKJN3IQs+AfU=
 github.com/whosonfirst/geojson2svg v1.0.1 h1:fSQjS7VwyH8AOMK/XuSbQjbrV7axvYotbtUAr7HeJ8c=
 github.com/whosonfirst/geojson2svg v1.0.1/go.mod h1:L+2OxSnjAWMFcnPwjcKxH3AhnMukxerTZSHZTzXJviw=
+github.com/whosonfirst/geojson2svg v1.0.2 h1:A8+XFnT8z5ztE4fwnP7EgU95+CFJPH/5OcQNPy0MRcE=
+github.com/whosonfirst/geojson2svg v1.0.2/go.mod h1:L+2OxSnjAWMFcnPwjcKxH3AhnMukxerTZSHZTzXJviw=
 github.com/whosonfirst/go-bindata v0.0.0-20180807000000-86a4bac5e0f5afa37bb2577dc92223452735d178/go.mod h1:A5q98YeBQy8ymR+Cxo/SqjHOCBdo7TEqQDnJmX/T3aU=
 github.com/whosonfirst/go-bindata-assetfs v1.0.0/go.mod h1:LuisX+Ih5BbXs+dQw87tQ2DGxhraoPNUJot3SCxRq0g=
 github.com/whosonfirst/go-bindata-html-template v0.0.0-20170123000000-839a6918b9ff535f95246ef0f43edfdb4ed186be/go.mod h1:F4sIRdt9e6E0iYckIP2PCLi6C7yrWDdgYF8er8RFlCk=
 github.com/whosonfirst/go-rasterzen v0.1.5 h1:jd96nLJHzMtXXeT8556Cqci8GwsaNgr2/0w6Qaqnohw=
 github.com/whosonfirst/go-rasterzen v0.1.5/go.mod h1:RPueZBkcXo/WtX4W97I//BjBH+Z+46y5XgqkFDW6PlQ=
+github.com/whosonfirst/go-rasterzen v0.1.6 h1:2G6Fs0fgmApaYcZqy4cTkduH1xyynyx7WYaxkDOk8tw=
+github.com/whosonfirst/go-rasterzen v0.1.6/go.mod h1:RhpDRDCEjdW6zHx6HvMqLZdVagXVg17hXVxU0ESmZVU=
 github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8 h1:5dtYgPS6su1QqwUfVnyEL9V7GvMWX+60VRkUX5RvJsc=
 github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8/go.mod h1:JnzadIex2v6ZyX6pLrjJ5CJ69e/ljYBCqxarHDMkMJ4=
 github.com/whosonfirst/go-whosonfirst-aws v0.1.0 h1:q+esqP3703MwJpgW90Ft9yyO1gmLZ7ymG5OLSvCmges=
