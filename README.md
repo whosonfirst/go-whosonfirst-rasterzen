@@ -180,11 +180,11 @@ See the commas between everything and the lack of quotes around the `-sqs-dsn` f
 
 The command above will fetch a copy of the `sfomuseum-data-architecture` repo, calculate all the tiles between zoom levels 14 and 16 and then "fetch" each one of those tiles using the SQS `seed-worker` which just means an entry for the tile will be created in an SQS queue and assumes you've configured the `go-rasterzen` [rasterzen-seed-sqs](https://github.com/whosonfirst/go-rasterzen/blob/master/cmd/rasterzen-seed-sqs/main.go) tool as a Lambda trigger for new queue items.
 
-You could also invoke the Lambda `seed-worker` directly rather than queueing everything up in SQS. That's your business. The point is you can do either. In both cases though it's assumed that there is a Lambda `seed-worker` that is fetching data from a copy of the `go-rasterzen` [rasterd](https://github.com/whosonfirst/go-rasterzen#rasterd) application.
+For a pretty picture of everything just described, see [go-rasterzen/docs/rasterzen-seed-sqs-arch.jpg ](https://github.com/whosonfirst/go-rasterzen/blob/master/docs/rasterzen-seed-sqs-arch.jpg). (Note that the image assumes the `go-rasterzen` [rasterzen-seed](https://github.com/whosonfirst/go-rasterzen#rasterzen-seed) tool which doesn't know how to seed WOF repos, but the principle is the same.)
 
-For a pretty picture of everything just described, see [go-rasterzen/docs/rasterzen-seed-sqs-arch.jpg ](https://github.com/whosonfirst/go-rasterzen/blob/master/docs/rasterzen-seed-sqs-arch.jpg).
+Because this (`wof-rasterzen-seed`) is being run from an ECS instance you could also invoke the Lambda `seed-worker` directly rather than queueing everything up in SQS. That's your business. The point is you can do either. In both cases though it's assumed that there is a Lambda `seed-worker` that is fetching data from a copy of the `go-rasterzen` [rasterd](https://github.com/whosonfirst/go-rasterzen#rasterd) application.
 
-
+See also: [go-rasterzen workers](https://github.com/whosonfirst/go-rasterzen/tree/master/worker).
 
 ## See also
 
