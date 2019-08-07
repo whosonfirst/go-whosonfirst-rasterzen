@@ -28,12 +28,12 @@ For background, you should read the following blog posts:
 Pre-seed [go-rasterzen](https://github.com/whosonfirst/go-rasterzen) tiles (and their vector/raster derivatives) for one or more [go-whosonfirst-index](https://github.com/whosonfirst/go-whosonfirst-index) compatible indices.
 
 ```
-./bin/wof-rasterzen-seed -h
+> ./bin/wof-rasterzen-seed -h
 Usage of ./bin/wof-rasterzen-seed:
   -count
-    	   Display the number of tiles to process and exit.
+    	Display the number of tiles to process and exit.
   -exclude value
-    	   Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.    	
+    	Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.
   -fs-cache
     	Cache tiles with a filesystem-based cache.
   -fs-root string
@@ -41,7 +41,11 @@ Usage of ./bin/wof-rasterzen-seed:
   -go-cache
     	Cache tiles with an in-memory (go-cache) cache.
   -include value
-    	   Include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.
+    	Include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.
+  -lambda-dsn value
+    	A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION'
+  -lambda-function string
+    	A valid AWS Lambda function name. (default "Rasterzen")
   -max-zoom int
     	 (default 16)
   -min-zoom int
@@ -62,14 +66,22 @@ Usage of ./bin/wof-rasterzen-seed:
     	A valid go-whosonfirst-aws DSN string
   -s3-opts string
     	A valid go-whosonfirst-cache-s3 options string
+  -seed-all
+    	See all the tile formats
+  -seed-max-workers int
+    	The maximum number of concurrent workers to invoke when seeding tiles (default 100)
   -seed-png
     	Seed PNG tiles.
+  -seed-rasterzen
+    	Seed Rasterzen tiles.
   -seed-svg
-    	Seed SVG tiles. (default true)
-  -seed-timings
-    	Display timings when seeding tiles.
-  -seed-workers int
-    	The maximum number of concurrent workers to invoke when seeding tiles (default 100)
+    	Seed SVG tiles.
+  -seed-worker string
+    	The type of worker for seeding tiles. Valid workers are: lambda, local, sqs. (default "local")
+  -sqs-dsn value
+    	A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION' and 'queue=QUEUE'
+  -timings
+    	Display timings for tile seeding.
 ```
 
 For example:
