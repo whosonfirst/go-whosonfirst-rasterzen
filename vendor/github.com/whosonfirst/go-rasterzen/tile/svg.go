@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/go-spatial/geom"
 	"github.com/go-spatial/geom/slippy"
 	"github.com/tidwall/gjson"
 	"github.com/tidwall/sjson"
@@ -32,6 +33,7 @@ type RasterzenSVGStyles map[string]SVGStyle
 
 type RasterzenSVGOptions struct {
 	TileSize      float64            `json:"tile_size"`
+	TileExtent    *geom.Extent       `json:"tile_extent"`
 	Stroke        string             `json:"stroke"`
 	StrokeWidth   float64            `json:"stroke_width"`
 	StrokeOpacity float64            `json:"stroke_opacity"`
@@ -44,6 +46,7 @@ func DefaultRasterzenSVGOptions() (*RasterzenSVGOptions, error) {
 
 	opts := RasterzenSVGOptions{
 		TileSize:      512.0,
+		TileExtent:    nil,
 		Stroke:        "#000000",
 		StrokeWidth:   1.0,
 		StrokeOpacity: 1.0,
@@ -52,6 +55,21 @@ func DefaultRasterzenSVGOptions() (*RasterzenSVGOptions, error) {
 	}
 
 	return &opts, nil
+}
+
+func (opts *RasterzenSVGOptions) Clone() *RasterzenSVGOptions {
+
+	clone := RasterzenSVGOptions{
+		TileSize:      opts.TileSize,
+		TileExtent:    opts.TileExtent,
+		Stroke:        opts.Stroke,
+		StrokeWidth:   opts.StrokeWidth,
+		StrokeOpacity: opts.StrokeOpacity,
+		Fill:          opts.Fill,
+		FillOpacity:   opts.FillOpacity,
+	}
+
+	return &clone
 }
 
 func RasterzenSVGOptionsFromFile(path string) (*RasterzenSVGOptions, error) {
@@ -126,6 +144,8 @@ func RenderSVGTile(t slippy.Tile, c cache.Cache, nz_opts *nextzen.Options, svg_o
 	var buf bytes.Buffer
 	svg_wr := bufio.NewWriter(&buf)
 
+	svg_opts.TileExtent = t.Extent4326()
+
 	err = RasterzenToSVGWithOptions(geojson_fh, svg_wr, svg_opts)
 
 	if err != nil {
@@ -162,7 +182,6 @@ func RasterzenToSVGWithOptions(in io.Reader, out io.Writer, svg_opts *RasterzenS
 	tile_size := svg_opts.TileSize
 
 	s := geojson2svg.New()
-	s.Mercator = true
 
 	use_props := map[string]bool{
 		// "id": true,
@@ -415,6 +434,18 @@ func RasterzenToSVGWithOptions(in io.Reader, out io.Writer, svg_opts *RasterzenS
 
 	for k, _ := range use_props {
 		props = append(props, k)
+	}
+
+	s.Mercator = true
+
+	if svg_opts.TileExtent != nil {
+
+		s.Extent = &geojson2svg.Extent{
+			MinX: svg_opts.TileExtent.MinX(),
+			MinY: svg_opts.TileExtent.MinY(),
+			MaxX: svg_opts.TileExtent.MaxX(),
+			MaxY: svg_opts.TileExtent.MaxY(),
+		}
 	}
 
 	rsp := s.Draw(tile_size, tile_size,

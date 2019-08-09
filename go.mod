@@ -6,7 +6,7 @@ require (
 	github.com/go-spatial/geom v0.0.0-20190706003858-2760310199f5
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/tidwall/gjson v1.3.2
-	github.com/whosonfirst/go-rasterzen v0.1.6
+	github.com/whosonfirst/go-rasterzen v0.2.1
 	github.com/whosonfirst/go-whosonfirst-cache v0.1.0
 	github.com/whosonfirst/go-whosonfirst-cache-s3 v0.0.0-20180725183234-440d3bfdb2a9
 	github.com/whosonfirst/go-whosonfirst-cli v0.1.0

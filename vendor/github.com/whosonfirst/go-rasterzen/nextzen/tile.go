@@ -1,7 +1,18 @@
 package nextzen
 
+// should this be in tile/nextzen.go ? perhaps...
+// (20190606/thisisaaronland)
+
+// known overzoom weirdness - basically everything is working properly
+// in this package and the weirdness is happening... where?
+// http://localhost:8080/#20/37.61694/-122.38095
+// http://localhost:8080/png/16/10489/25367.svg?api_key={APIKEY}
+// http://localhost:8080/png/20/167826/405878.svg?api_key={APIKEY}
+
 import (
 	"bytes"
+	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/jtacoma/uritemplates"
@@ -9,7 +20,6 @@ import (
 	"github.com/paulmach/orb/geojson"
 	"github.com/paulmach/orb/maptile"
 	"github.com/tidwall/gjson"
-	"github.com/tidwall/sjson"
 	"io"
 	"io/ioutil"
 	"log"
@@ -32,16 +42,51 @@ func init() {
 	default_endpoint, _ = uritemplates.Parse(template)
 }
 
+func MaxZoom() int {
+	return 16
+}
+
+func IsOverZoom(z int) bool {
+
+	if z > MaxZoom() {
+		return true
+	}
+
+	return false
+}
+
 func FetchTile(z int, x int, y int, opts *Options) (io.ReadCloser, error) {
+
+	fetch_z := z
+	fetch_x := x
+	fetch_y := y
+
+	// see notes below about whether or not we keep the overzooming code
+	// in this package or in tile/rasterzen.go (20190606/thisisaaronland)
+
+	overzoom := IsOverZoom(z)
+
+	if overzoom {
+
+		max := MaxZoom()
+		mag := z - max
+
+		ux := uint(x) >> uint(mag)
+		uy := uint(y) >> uint(mag)
+
+		fetch_z = max
+		fetch_x = int(ux)
+		fetch_y = int(uy)
+	}
 
 	layer := "all"
 
 	values := make(map[string]interface{})
 	values["layer"] = "all"
 	values["apikey"] = opts.ApiKey
-	values["z"] = z
-	values["x"] = x
-	values["y"] = y
+	values["z"] = fetch_z
+	values["x"] = fetch_x
+	values["y"] = fetch_y
 
 	endpoint := default_endpoint
 
@@ -88,23 +133,39 @@ func FetchTile(z int, x int, y int, opts *Options) (io.ReadCloser, error) {
 		log.Println(url, rsp.Status)
 	}
 
-	// for reasons I don't understand the following does not appear
-	// to trigger an error (20180628/thisisaaronland)
-	// < HTTP/2 400
-	// < content-length: 16
-	// < server: CloudFront
-	// < date: Thu, 28 Jun 2018 20:50:44 GMT
-	// < age: 73
-	// < x-cache: Error from cloudfront
-	// < via: 1.1 02192a27c967e955f8c815efa939bfc8.cloudfront.net (CloudFront)
-	// < x-amz-cf-id: m42n6AwT9N-kBNzKnrKxe1eXfQITapw0BAfE8kG89vPNn0rQ2TQKTg==
-
 	if rsp.StatusCode != 200 {
 		return nil, errors.New(fmt.Sprintf("Nextzen returned a non-200 response fetching %s/%d/%d/%d : '%s'", layer, z, x, y, rsp.Status))
 	}
 
-	return rsp.Body, nil
+	rsp_body := rsp.Body
+
+	// overzooming works until it doesn't - specifically there are
+	// weird offsets that I don't understand - examples include:
+	// ./bin/rasterd -www -www-debug -no-cache -nextzen-debug -nextzen-apikey {KEY}
+	// http://localhost:8080/#18/37.61800/-122.38301
+	// http://localhost:8080/#19/37.61780/-122.38800
+	// http://localhost:8080/svg/19/83903/202936.svg?api_key={KEY}
+	// (20190606/thisisaaronland)
+
+	if overzoom {
+
+		// it would be good to cache rsp_body (aka the Z16 tile) here or maybe
+		// we just move all of this logic in to tile/rasterzen.go...
+		// (20190606/thisisaaronland)
+
+		cropped_rsp, err := CropTile(z, x, y, rsp_body)
+
+		if err != nil {
+			return nil, err
+		}
+
+		rsp_body = cropped_rsp
+	}
+
+	return rsp_body, nil
 }
+
+// crop all the elements in fh to the bounds of (z, x, y)
 
 func CropTile(z int, x int, y int, fh io.ReadCloser) (io.ReadCloser, error) {
 
@@ -121,44 +182,99 @@ func CropTile(z int, x int, y int, fh io.ReadCloser) (io.ReadCloser, error) {
 		return nil, err
 	}
 
+	cropped_tile := make(map[string]interface{})
+
+	type CroppedResponse struct {
+		Layer             string
+		FeatureCollection *geojson.FeatureCollection
+	}
+
+	done_ch := make(chan bool)
+	err_ch := make(chan error)
+	rsp_ch := make(chan CroppedResponse)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
 	// Layers is defined in nextzen/layers.go
 
-	for _, l := range Layers {
+	for _, layer_name := range Layers {
 
-		fc := gjson.GetBytes(body, l)
+		go func(layer_name string) {
 
-		if !fc.Exists() {
-			continue
-		}
+			defer func() {
+				done_ch <- true
+			}()
 
-		features := fc.Get("features")
-
-		// SOMETHING SOMETHING SOMETHING DO THESE ALL IN PARALLEL...
-
-		for i, f := range features.Array() {
-
-			str_f := f.String()
-
-			feature, err := geojson.UnmarshalFeature([]byte(str_f))
-
-			if err != nil {
-				return nil, err
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				// pass
 			}
 
-			geom := feature.Geometry
+			fc_rsp := gjson.GetBytes(body, layer_name)
 
-			orb_geom := clip.Geometry(bounds, geom)
-			new_geom := geojson.NewGeometry(orb_geom)
+			if !fc_rsp.Exists() {
+				return
+			}
 
-			path := fmt.Sprintf("%s.features.%d.geometry", l, i)
-			body, err = sjson.SetBytes(body, path, new_geom)
+			fc_str := fc_rsp.String()
+
+			fc, err := geojson.UnmarshalFeatureCollection([]byte(fc_str))
 
 			if err != nil {
-				return nil, err
+				err_ch <- err
+				return
 			}
+
+			cropped_fc := geojson.NewFeatureCollection()
+
+			for _, f := range fc.Features {
+
+				geom := f.Geometry
+				clipped_geom := clip.Geometry(bounds, geom)
+
+				if clipped_geom == nil {
+					continue
+				}
+
+				f.Geometry = clipped_geom
+				cropped_fc.Append(f)
+			}
+
+			if len(cropped_fc.Features) > 0 {
+
+				rsp := CroppedResponse{
+					Layer:             layer_name,
+					FeatureCollection: cropped_fc,
+				}
+
+				rsp_ch <- rsp
+			}
+
+		}(layer_name)
+	}
+
+	remaining := len(Layers)
+
+	for remaining > 0 {
+		select {
+		case <-done_ch:
+			remaining -= 1
+		case err := <-err_ch:
+			return nil, err
+		case rsp := <-rsp_ch:
+			cropped_tile[rsp.Layer] = rsp.FeatureCollection
 		}
 	}
 
-	r := bytes.NewReader(body)
+	cropped_body, err := json.Marshal(cropped_tile)
+
+	if err != nil {
+		return nil, err
+	}
+
+	r := bytes.NewReader(cropped_body)
 	return ioutil.NopCloser(r), nil
 }

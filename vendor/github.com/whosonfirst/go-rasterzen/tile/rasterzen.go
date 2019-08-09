@@ -8,6 +8,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-cache"
 	"io"
 	"io/ioutil"
+	_ "log"
 )
 
 func RenderRasterzenTile(t slippy.Tile, c cache.Cache, nz_opts *nextzen.Options) (io.ReadCloser, error) {
@@ -53,18 +54,27 @@ func RenderRasterzenTile(t slippy.Tile, c cache.Cache, nz_opts *nextzen.Options)
 		}
 	}
 
-	cr, err := nextzen.CropTile(z, x, y, nextzen_data)
+	// see notes in nextzen/tile.go about moving all the overzoom-ing
+	// code in here which would allow us to pre-cache the Z16 tile...
+	// (20190606/thisisaaronland)
 
-	if err != nil {
-		return nil, err
-	}
+	if nextzen.IsOverZoom(z) {
+		rasterzen_data, err = c.Set(rasterzen_key, nextzen_data)
+	} else {
 
-	defer cr.Close()
+		cr, err := nextzen.CropTile(z, x, y, nextzen_data)
 
-	rasterzen_data, err = c.Set(rasterzen_key, cr)
+		if err != nil {
+			return nil, err
+		}
 
-	if err != nil {
-		return nil, err
+		defer cr.Close()
+
+		rasterzen_data, err = c.Set(rasterzen_key, cr)
+
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return rasterzen_data, nil
