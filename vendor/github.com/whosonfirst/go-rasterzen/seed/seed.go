@@ -4,61 +4,95 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/aaronland/go-string/dsn"
 	"github.com/go-spatial/geom/slippy"
+	"github.com/whosonfirst/go-rasterzen/seed/catalog"
 	"github.com/whosonfirst/go-rasterzen/tile"
 	"github.com/whosonfirst/go-rasterzen/worker"
+	"github.com/whosonfirst/go-whosonfirst-cache"
 	"github.com/whosonfirst/go-whosonfirst-log"
-	"sync"
+	"strings"
 	"sync/atomic"
 	"time"
 )
 
-type TileSet struct {
-	tile_map *sync.Map
+type SeedError struct {
+	Details error
+	Tile    slippy.Tile
 }
 
-func NewTileSet() (*TileSet, error) {
+func (e *SeedError) Error() string {
+	return e.String()
+}
 
-	tm := new(sync.Map)
+func (e *SeedError) String() string {
+	return fmt.Sprintf("Unable to seed %v because %s", e.Tile, e.Details)
+}
+
+type TileSet struct {
+	tile_catalog catalog.SeedCatalog
+}
+
+func NewTileSetFromDSN(str_dsn string) (*TileSet, error) {
+
+	dsn_map, err := dsn.StringToDSNWithKeys(str_dsn, "catalog")
+
+	if err != nil {
+		return nil, err
+	}
+
+	var seed_catalog catalog.SeedCatalog
+
+	switch strings.ToUpper(dsn_map["catalog"]) {
+	case "SQLITE":
+
+		sqlite_dsn, ok := dsn_map["dsn"]
+
+		if ok {
+			seed_catalog, err = catalog.NewSQLiteSeedCatalog(sqlite_dsn)
+		} else {
+			err = errors.New("Missing 'dsn' property")
+		}
+
+	case "SYNC":
+		seed_catalog, err = catalog.NewSyncMapSeedCatalog()
+	default:
+		err = errors.New("Invalid catalog")
+	}
+
+	if err != nil {
+		return nil, err
+	}
+
+	return NewTileSet(seed_catalog)
+}
+
+func NewTileSet(seed_catalog catalog.SeedCatalog) (*TileSet, error) {
 
 	ts := TileSet{
-		tile_map: tm,
+		tile_catalog: seed_catalog,
 	}
 
 	return &ts, nil
 }
 
 func (ts *TileSet) AddTile(t slippy.Tile) error {
-
-	if t.Z > 16 {
-		return errors.New("Tiles > zoom 16 can not be rendered at this time.")
-	}
-
 	k := fmt.Sprintf("%d/%d/%d", t.Z, t.X, t.Y)
-	ts.tile_map.LoadOrStore(k, t)
+	ts.tile_catalog.LoadOrStore(k, t)
 	return nil
 }
 
 func (ts *TileSet) Range(f func(key, value interface{}) bool) {
-	ts.tile_map.Range(f)
+	ts.tile_catalog.Range(f)
 }
 
 func (ts *TileSet) Count() int32 {
-
-	remaining := int32(0)
-
-	tile_func := func(key, value interface{}) bool {
-		atomic.AddInt32(&remaining, 1)
-		return true
-	}
-
-	ts.Range(tile_func)
-
-	return remaining
+	return ts.tile_catalog.Count()
 }
 
 type TileSeeder struct {
 	worker        worker.Worker
+	cache         cache.Cache
 	MaxWorkers    int
 	SeedRasterzen bool
 	SeedGeoJSON   bool
@@ -70,12 +104,13 @@ type TileSeeder struct {
 	Logger        *log.WOFLogger
 }
 
-func NewTileSeeder(w worker.Worker) (*TileSeeder, error) {
+func NewTileSeeder(w worker.Worker, c cache.Cache) (*TileSeeder, error) {
 
 	logger := log.SimpleWOFLogger()
 
 	s := TileSeeder{
 		worker:        w,
+		cache:         c,
 		SeedRasterzen: true,
 		SeedSVG:       true,
 		SeedPNG:       false,
@@ -126,6 +161,8 @@ func (s *TileSeeder) SeedTileSet(ctx context.Context, ts *TileSet) (bool, []erro
 			for range ticker.C {
 
 				select {
+				case <-ctx.Done():
+					return
 				case <-ticker_ch:
 					return
 				default:
@@ -164,22 +201,30 @@ func (s *TileSeeder) SeedTileSet(ctx context.Context, ts *TileSet) (bool, []erro
 				t1 := time.Now()
 
 				defer func() {
-					s.Logger.Status("Time to seed tile (%d/%d/%d) %v", t.Z, t.X, t.Y, time.Since(t1))
+					s.Logger.Debug("Time to seed tile (%d/%d/%d) %v", t.Z, t.X, t.Y, time.Since(t1))
 				}()
 			}
 
 			defer func() {
+
+				k := fmt.Sprintf("%d/%d/%d", t.Z, t.X, t.Y)
+
+				err := ts.tile_catalog.Remove(k)
+
+				if err != nil {
+					s.Logger.Warning("Failed to remove %s key from tile catalog: %s", k, err)
+				}
+
 				done_ch <- true
 				throttle <- true
 			}()
 
-			ok, errs := s.seedTiles(t)
+			ok, errs := s.SeedTiles(t)
 
 			if !ok {
 
 				for _, e := range errs {
-					msg := fmt.Sprintf("Unable to seed %v because %s", t, e)
-					err_ch <- errors.New(msg)
+					err_ch <- &SeedError{Details: e, Tile: t}
 				}
 			}
 
@@ -207,28 +252,20 @@ func (s *TileSeeder) SeedTileSet(ctx context.Context, ts *TileSet) (bool, []erro
 	return ok, errors
 }
 
-func (s *TileSeeder) seedTiles(t slippy.Tile) (bool, []error) {
+func (s *TileSeeder) SeedTiles(t slippy.Tile) (bool, []error) {
 
 	if s.SeedRasterzen {
 
-		// please figure me out... (20181105/thisisaaronland)
+		cache_key := tile.CacheKeyForRasterzenTile(t)
+		_, cache_err := s.cache.Get(cache_key)
 
-		/*
-			cache_key := tile.CacheKeyForRasterzenTile(t)
+		if cache_err != nil {
 
-			cached, err := worker.IsCached(s.worker.cache, cache_key)
+			err := s.worker.RenderRasterzenTile(t)
 
 			if err != nil {
-				return err
+				return false, []error{err}
 			}
-
-			if !cached {
-		*/
-
-		err := s.worker.RenderRasterzenTile(t)
-
-		if err != nil {
-			return false, []error{err}
 		}
 	}
 
