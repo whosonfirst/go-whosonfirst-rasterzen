@@ -47,7 +47,6 @@ func main() {
 	s3_opts := flag.String("s3-opts", "", "A valid go-whosonfirst-cache-s3 options string")
 
 	seed_rasterzen := flag.Bool("seed-rasterzen", false, "Seed Rasterzen tiles.")
-	// seed_geojson := flag.Bool("seed-geojson", true, "Seed GeoJSON tiles.")
 	seed_svg := flag.Bool("seed-svg", false, "Seed SVG tiles.")
 	seed_png := flag.Bool("seed-png", false, "Seed PNG tiles.")
 	seed_all := flag.Bool("seed-all", false, "See all the tile formats")
@@ -66,6 +65,9 @@ func main() {
 
 	flag.Var(&exclude, "exclude", "Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.")
 	flag.Var(&include, "include", "Include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.")
+
+	custom_svg_options := flag.String("svg-options", "", "The path to a valid RasterzenSVGOptions JSON file.")
+	seed_tileset_catalog_dsn := flag.String("seed-tileset-catalog-dsn", "catalog=sync", "A valid tile.SeedCatalog DSN string. Required parameters are 'catalog=CATALOG'")
 
 	lambda_function := flag.String("lambda-function", "Rasterzen", "A valid AWS Lambda function name.")
 
@@ -185,10 +187,37 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	svg_opts, err := tile.DefaultRasterzenSVGOptions()
+	var svg_opts *tile.RasterzenSVGOptions
 
-	if err != nil {
-		logger.Fatal(err)
+	if *seed_svg || *seed_png {
+
+		if *custom_svg_options != "" {
+
+			var opts *tile.RasterzenSVGOptions
+
+			if strings.HasPrefix(*custom_svg_options, "{") {
+				opts, err = tile.RasterzenSVGOptionsFromString(*custom_svg_options)
+			} else {
+				opts, err = tile.RasterzenSVGOptionsFromFile(*custom_svg_options)
+			}
+
+			if err != nil {
+				logger.Fatal(err)
+			}
+
+			svg_opts = opts
+
+		} else {
+
+			opts, err := tile.DefaultRasterzenSVGOptions()
+
+			if err != nil {
+				logger.Fatal(err)
+			}
+
+			svg_opts = opts
+		}
+
 	}
 
 	var w worker.Worker
@@ -204,14 +233,13 @@ func main() {
 		w, w_err = worker.NewSQSWorker(sqs_dsn.Map())
 	default:
 		w_err = errors.New("Invalid worker")
-
 	}
 
 	if w_err != nil {
 		logger.Fatal(w_err)
 	}
 
-	seeder, err := seed.NewTileSeeder(w)
+	seeder, err := seed.NewTileSeeder(w, c)
 
 	if err != nil {
 		logger.Fatal(err)
@@ -225,7 +253,7 @@ func main() {
 	seeder.SeedSVG = *seed_svg
 	seeder.SeedPNG = *seed_png
 
-	ts, err := seed.NewTileSet()
+	ts, err := seed.NewTileSetFromDSN(*seed_tileset_catalog_dsn)
 
 	if err != nil {
 		logger.Fatal(err)

@@ -107,7 +107,7 @@ github.com/tidwall/pretty
 github.com/tidwall/sjson
 # github.com/whosonfirst/geojson2svg v1.1.0
 github.com/whosonfirst/geojson2svg/pkg/geojson2svg
-# github.com/whosonfirst/go-rasterzen v0.2.6
+# github.com/whosonfirst/go-rasterzen v0.2.8
 github.com/whosonfirst/go-rasterzen/nextzen
 github.com/whosonfirst/go-rasterzen/seed
 github.com/whosonfirst/go-rasterzen/tile
@@ -133,7 +133,7 @@ github.com/whosonfirst/go-whosonfirst-csv
 # github.com/whosonfirst/go-whosonfirst-flags v0.1.0
 github.com/whosonfirst/go-whosonfirst-flags
 github.com/whosonfirst/go-whosonfirst-flags/existential
-# github.com/whosonfirst/go-whosonfirst-geojson-v2 v0.10.2
+# github.com/whosonfirst/go-whosonfirst-geojson-v2 v0.11.0
 github.com/whosonfirst/go-whosonfirst-geojson-v2/feature
 github.com/whosonfirst/go-whosonfirst-geojson-v2
 github.com/whosonfirst/go-whosonfirst-geojson-v2/geometry
