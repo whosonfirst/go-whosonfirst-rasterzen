@@ -3,7 +3,7 @@ module github.com/whosonfirst/go-whosonfirst-rasterzen
 go 1.12
 
 require (
-	github.com/go-spatial/geom v0.0.0-20190706003858-2760310199f5
+	github.com/go-spatial/geom v0.0.0-20190820000000-802ab2533ab421ad531a77ff9c84eec00c5ef328
 	github.com/jtacoma/uritemplates v1.0.0
 	github.com/tidwall/gjson v1.3.2
 	github.com/whosonfirst/go-rasterzen v0.2.8

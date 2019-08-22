@@ -52,7 +52,7 @@ github.com/emirpasic/gods/utils
 github.com/emirpasic/gods/lists
 # github.com/go-ini/ini v1.42.0
 github.com/go-ini/ini
-# github.com/go-spatial/geom v0.0.0-20190706003858-2760310199f5
+# github.com/go-spatial/geom v0.0.0-20190820000000-802ab2533ab421ad531a77ff9c84eec00c5ef328
 github.com/go-spatial/geom
 github.com/go-spatial/geom/slippy
 # github.com/hashicorp/errwrap v0.0.0-20141028054710-7554cd9344ce

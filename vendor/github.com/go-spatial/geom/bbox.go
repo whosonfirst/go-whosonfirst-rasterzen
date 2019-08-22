@@ -23,7 +23,7 @@ type Extent [4]float64
 
 /* ========================= ATTRIBUTES ========================= */
 
-// Vertices return the verticies of the Bounding Box. The verticies are ordered in the following maner.
+// Vertices return the vertices of the Bounding Box. The vertices are ordered in the following maner.
 // (minx,miny), (maxx,miny), (maxx,maxy), (minx,maxy)
 func (e *Extent) Vertices() [][2]float64 {
 	return [][2]float64{
@@ -33,6 +33,9 @@ func (e *Extent) Vertices() [][2]float64 {
 		{e.MinX(), e.MaxY()},
 	}
 }
+
+// Verticies is the misspelled version of Vertices to match the interface
+func (e *Extent) Verticies() [][2]float64 { return e.Vertices() }
 
 // ClockwiseFunc returns weather the set of points should be considered clockwise or counterclockwise. The last point is not the same as the first point, and the function should connect these points as needed.
 type ClockwiseFunc func(...[2]float64) bool
@@ -196,6 +199,35 @@ func NewExtent(points ...[2]float64) *Extent {
 	return &extent
 }
 
+// NewExtentFromPoints returns an Extent for the provided points; in following format [4]float64{ MinX, MinY, MaxX, MaxY }
+func NewExtentFromPoints(points ...Point) *Extent {
+	if len(points) == 0 {
+		return nil
+	}
+
+	extent := Extent{points[0][0], points[0][1], points[0][0], points[0][1]}
+	if len(points) == 1 {
+		return &extent
+	}
+	for _, pt := range points[1:] {
+		// Check the x coords
+		switch {
+		case pt[0] < extent[0]:
+			extent[0] = pt[0]
+		case pt[0] > extent[2]:
+			extent[2] = pt[0]
+		}
+		// Check the y coords
+		switch {
+		case pt[1] < extent[1]:
+			extent[1] = pt[1]
+		case pt[1] > extent[3]:
+			extent[3] = pt[1]
+		}
+	}
+	return &extent
+}
+
 // NewExtentFromGeometry tries to create an extent based on the geometry
 func NewExtentFromGeometry(g Geometry) (*Extent, error) {
 	var pts []Point
@@ -228,13 +260,40 @@ func (e *Extent) Contains(ne MinMaxer) bool {
 		e.MaxY() >= ne.MaxY()
 }
 
+// Float64 compares two floats to see if they are within the given tolerance.
+func cmpFloat64(f1, f2, tolerance float64) bool {
+	if math.IsInf(f1, 1) {
+		return math.IsInf(f2, 1)
+	}
+	if math.IsInf(f2, 1) {
+		return math.IsInf(f1, 1)
+	}
+	if math.IsInf(f1, -1) {
+		return math.IsInf(f2, -1)
+	}
+	if math.IsInf(f2, -1) {
+		return math.IsInf(f1, -1)
+	}
+	diff := math.Abs(f1 - f2)
+	return diff <= tolerance
+}
+
+func floatLessOrEqual(pt1, pt2 float64) bool {
+	if cmpFloat64(pt1, pt2, 0.001) {
+		return true
+	}
+	return pt1 < pt2
+}
+
 // ContainsPoint will return whether the given point is inside of the extent.
 func (e *Extent) ContainsPoint(pt [2]float64) bool {
 	if e == nil {
 		return true
 	}
-	return e.MinX() <= pt[0] && pt[0] <= e.MaxX() &&
-		e.MinY() <= pt[1] && pt[1] <= e.MaxY()
+
+	return floatLessOrEqual(e.MinX(), pt[0]) && floatLessOrEqual(pt[0], e.MaxX()) &&
+		floatLessOrEqual(e.MinY(), pt[1]) && floatLessOrEqual(pt[1], e.MaxY())
+
 }
 
 // ContainsLine will return weather the given line completely inside of the extent.
@@ -294,15 +353,15 @@ func (e *Extent) Clone() *Extent {
 
 // Intersect will return a new extent that is the intersect of the two extents.
 //
-// +-------------------------+
-// |                         |
-// |       A      +----------+------+
-// |              |//////////|      |
-// |              |/// C ////|      |
-// |              |//////////|      |
-// +--------------+----------+      |
-//                |             B   |
-//                +-----------------+
+//	+-------------------------+
+//	|                         |
+//	|       A      +----------+------+
+//	|              |//////////|      |
+//	|              |/// C ////|      |
+//	|              |//////////|      |
+//	+--------------+----------+      |
+//	               |             B   |
+//	               +-----------------+
 // For example the for the above Box A intersects Box B at the area surround by C.
 //
 // If the Boxes don't intersect does will be false, otherwise ibb will be the intersect.
