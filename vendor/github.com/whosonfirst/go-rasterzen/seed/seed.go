@@ -103,10 +103,16 @@ func NewTileSet(seed_catalog catalog.SeedCatalog) (*TileSet, error) {
 }
 
 func (ts *TileSet) AddTile(t slippy.Tile) error {
-	k := fmt.Sprintf("%d/%d/%d", t.Z, t.X, t.Y)
-	ts.tile_catalog.LoadOrStore(k, t)
 
-	atomic.AddInt64(&ts.ToSeed, 1)
+	k := fmt.Sprintf("%d/%d/%d", t.Z, t.X, t.Y)
+
+	_, ok := ts.tile_catalog.LoadOrStore(k, t)
+
+	if !ok {
+		ts.Logger.Debug("Add tile %v ", k)
+		atomic.AddInt64(&ts.ToSeed, 1)
+	}
+
 	return nil
 }
 
@@ -152,12 +158,13 @@ func NewTileSeeder(w worker.Worker, c cache.Cache) (*TileSeeder, error) {
 
 func (s *TileSeeder) SeedTileSet(ctx context.Context, ts *TileSet) (bool, []error) {
 
+	count := ts.Count()
 	t1 := time.Now()
 
 	if s.Timings {
 
 		defer func() {
-			s.Logger.Status("Time to seed all tiles %v", time.Since(t1))
+			s.Logger.Status("Time to seed %d tiles %v", count, time.Since(t1))
 		}()
 	}
 
@@ -169,8 +176,6 @@ func (s *TileSeeder) SeedTileSet(ctx context.Context, ts *TileSet) (bool, []erro
 
 	done_ch := make(chan bool)
 	err_ch := make(chan error)
-
-	count := ts.Count()
 
 	var remaining int32
 	atomic.StoreInt32(&remaining, count)
@@ -235,13 +240,14 @@ func (s *TileSeeder) SeedTileSet(ctx context.Context, ts *TileSet) (bool, []erro
 
 			defer func() {
 
-				k := fmt.Sprintf("%d/%d/%d", t.Z, t.X, t.Y)
+				// k := fmt.Sprintf("%d/%d/%d", t.Z, t.X, t.Y)
+				// ts.Logger.Status("Tile seeding complete for %v", k)
 
-				err := ts.tile_catalog.Remove(k)
+				// we used to do this but it can lead to situations where the same tile
+				// gets added (and seeded) over and over and over again so we don't do
+				// that anymore (20190830/thisisaaronland)
 
-				if err != nil {
-					s.Logger.Warning("Failed to remove %s key from tile catalog: %s", k, err)
-				}
+				// ts.tile_catalog.Delete(k)
 
 				done_ch <- true
 				throttle <- true
