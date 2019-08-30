@@ -107,7 +107,7 @@ github.com/tidwall/pretty
 github.com/tidwall/sjson
 # github.com/whosonfirst/geojson2svg v1.1.0
 github.com/whosonfirst/geojson2svg/pkg/geojson2svg
-# github.com/whosonfirst/go-rasterzen v0.3.1
+# github.com/whosonfirst/go-rasterzen v0.3.2
 github.com/whosonfirst/go-rasterzen/nextzen
 github.com/whosonfirst/go-rasterzen/seed
 github.com/whosonfirst/go-rasterzen/tile

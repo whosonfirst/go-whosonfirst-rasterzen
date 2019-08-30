@@ -123,6 +123,8 @@ github.com/whosonfirst/go-rasterzen v0.3.0 h1:n8t5HZ+ewvFE60/pLsurlcfQ8+nl3PDESB
 github.com/whosonfirst/go-rasterzen v0.3.0/go.mod h1:dd8v5sLKvfBQ5IYNE+EUGeuKd9AwVO9NdP6+FBY+Bzo=
 github.com/whosonfirst/go-rasterzen v0.3.1 h1:1NhqN1v0vEbwcuux7ne413OCz6zL02vdkvocFd1uZq0=
 github.com/whosonfirst/go-rasterzen v0.3.1/go.mod h1:dd8v5sLKvfBQ5IYNE+EUGeuKd9AwVO9NdP6+FBY+Bzo=
+github.com/whosonfirst/go-rasterzen v0.3.2 h1:qvKHlv+gpGbnx0hPA4EQ1Nb4ctnNfohxjWyikXdZO0o=
+github.com/whosonfirst/go-rasterzen v0.3.2/go.mod h1:dd8v5sLKvfBQ5IYNE+EUGeuKd9AwVO9NdP6+FBY+Bzo=
 github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8 h1:5dtYgPS6su1QqwUfVnyEL9V7GvMWX+60VRkUX5RvJsc=
 github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8/go.mod h1:JnzadIex2v6ZyX6pLrjJ5CJ69e/ljYBCqxarHDMkMJ4=
 github.com/whosonfirst/go-spatialite v0.1.0 h1:jKbVmIeUSsDfPX4DWTeiSR9zGJFETIF1A3YdK6IShBY=

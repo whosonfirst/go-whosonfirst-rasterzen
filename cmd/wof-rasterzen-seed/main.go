@@ -108,7 +108,7 @@ func WOFGatherTilesFunc(opts *WOFGatherTilesOptions) (seed.GatherTilesFunc, erro
 				}
 
 				if !include_ok {
-					tileset.Logger.Status("%s (%s) is being excluded because all -include tests failed", f.Name(), f.Id())
+					tileset.Logger.Debug("%s (%s) is being excluded because all -include tests failed", f.Name(), f.Id())
 					return nil
 				}
 			}
