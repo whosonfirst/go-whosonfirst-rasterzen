@@ -26,6 +26,138 @@ import (
 	"strings"
 )
 
+type WOFGatherTilesOptions struct {
+	Mode string
+	MinZoom int
+	MaxZoom int
+	Include flags.KeyValueArgs
+	Exclude flags.KeyValueArgs
+	Paths []string
+}
+
+func WOFGatherTilesFunc(opts *WOFGatherTilesOptions) (seed.GatherTilesFunc, error) {
+	
+	gather_func := func(ctx context.Context, tileset *seed.TileSet) error {
+
+		index_func := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
+
+			select {
+			case <-ctx.Done():
+				return nil
+			default:
+				// pass
+			}
+			
+			principal, err := utils.IsPrincipalWOFRecord(fh, ctx)
+			
+			if err != nil {
+				return err
+			}
+			
+			if !principal {
+				return nil
+			}
+			
+			f, err := feature.LoadFeatureFromReader(fh)
+			
+			if err != nil {
+				
+				if !warning.IsWarning(err) {
+					return err
+				}
+				
+				tileset.Logger.Warning(err)
+			}
+			
+			for _, e := range opts.Exclude {
+				
+				path := e.Key
+				test := e.Value
+				
+				rsp := gjson.GetBytes(f.Bytes(), path)
+				
+				if rsp.Exists() && rsp.String() == test {
+					tileset.Logger.Debug("%s (%s) is being exluded because it matches the %s=%s -exclude test", f.Name(), f.Id(), path, test)
+					return nil
+				}
+			}
+			
+			if len(opts.Include) > 0 {
+				
+				include_ok := false
+				
+				for _, i := range opts.Include {
+					
+					path := i.Key
+					test := i.Value
+					
+					rsp := gjson.GetBytes(f.Bytes(), path)
+					
+					if !rsp.Exists() {
+						tileset.Logger.Debug("%s (%s) fails -include test because %s does not exist", f.Name(), f.Id(), path)
+						continue
+					}
+					
+					if rsp.String() != test {
+						tileset.Logger.Debug("%s (%s) fails -include test because %s != %s (is %s)", f.Name(), f.Id(), path, test, rsp.String())
+						continue
+					}
+					
+					include_ok = true
+					break
+				}
+				
+				if !include_ok {
+					tileset.Logger.Status("%s (%s) is being excluded because all -include tests failed", f.Name(), f.Id())
+					return nil
+				}
+			}
+			
+			bboxes, err := f.BoundingBoxes()
+			
+			if err != nil {
+				return err
+			}
+			
+			for _, bounds := range bboxes.Bounds() {
+				
+				min := [2]float64{bounds.Min.X, bounds.Min.Y}
+				max := [2]float64{bounds.Max.Y, bounds.Max.Y}
+				
+				ex := geom.NewExtent(min, max)
+				
+				for z := opts.MinZoom; z < opts.MaxZoom; z++ {
+					
+					for _, t := range slippy.FromBounds(ex, uint(z)) {
+						tileset.AddTile(t)
+					}
+				}
+			}
+			
+			return nil
+		}
+		
+		idx, err := index.NewIndexer(opts.Mode, index_func)
+
+		if err != nil {
+			return err
+		}
+		
+		for _, path := range opts.Paths {
+			
+			err := idx.IndexPath(path)
+			
+			if err != nil {
+				return err
+			}
+		}
+
+		return nil
+	}
+
+	return gather_func, nil
+}
+
 func main() {
 
 	var mode = flag.String("mode", "repo", "")
@@ -253,138 +385,47 @@ func main() {
 	seeder.SeedSVG = *seed_svg
 	seeder.SeedPNG = *seed_png
 
-	ts, err := seed.NewTileSetFromDSN(*seed_tileset_catalog_dsn)
+	tileset, err := seed.NewTileSetFromDSN(*seed_tileset_catalog_dsn)
 
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	cb := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
+	tileset.Logger = logger
+	tileset.Timings = *timings
 
-		select {
-		case <-ctx.Done():
-			return nil
-		default:
-			// pass
-		}
+	paths := flag.Args()
 
-		principal, err := utils.IsPrincipalWOFRecord(fh, ctx)
-
-		if err != nil {
-			return err
-		}
-
-		if !principal {
-			return nil
-		}
-
-		f, err := feature.LoadFeatureFromReader(fh)
-
-		if err != nil {
-
-			if !warning.IsWarning(err) {
-
-				path, _ := index.PathForContext(ctx)
-
-				logger.Warning("%s triggered a critical error (%s)", path, err)
-				return err
-			}
-
-			logger.Warning(err)
-		}
-
-		for _, e := range exclude {
-
-			path := e.Key
-			test := e.Value
-
-			rsp := gjson.GetBytes(f.Bytes(), path)
-
-			if rsp.Exists() && rsp.String() == test {
-				logger.Status("%s (%s) is being exluded because it matches the %s=%s -exclude test", f.Name(), f.Id(), path, test)
-				return nil
-			}
-		}
-
-		if len(include) > 0 {
-
-			include_ok := false
-
-			for _, i := range include {
-
-				path := i.Key
-				test := i.Value
-
-				rsp := gjson.GetBytes(f.Bytes(), path)
-
-				if !rsp.Exists() {
-					logger.Status("%s (%s) fails -include test because %s does not exist", f.Name(), f.Id(), path)
-					continue
-				}
-
-				if rsp.String() != test {
-					logger.Status("%s (%s) fails -include test because %s != %s (is %s)", f.Name(), f.Id(), path, test, rsp.String())
-					continue
-				}
-
-				include_ok = true
-				break
-			}
-
-			if !include_ok {
-				logger.Status("%s (%s) is being excluded because all -include tests failed", f.Name(), f.Id())
-				return nil
-			}
-		}
-
-		bboxes, err := f.BoundingBoxes()
-
-		if err != nil {
-			return err
-		}
-
-		for _, bounds := range bboxes.Bounds() {
-
-			min := [2]float64{bounds.Min.X, bounds.Min.Y}
-			max := [2]float64{bounds.Max.Y, bounds.Max.Y}
-
-			ex := geom.NewExtent(min, max)
-
-			for z := *min_zoom; z < *max_zoom; z++ {
-
-				for _, t := range slippy.FromBounds(ex, uint(z)) {
-					ts.AddTile(t)
-				}
-			}
-		}
-
-		return nil
+	gather_opts := &WOFGatherTilesOptions{
+		Mode: *mode,
+		MinZoom: *min_zoom,
+		MaxZoom: *max_zoom,
+		Include: include,
+		Exclude: exclude,
+		Paths: paths,
 	}
-
-	idx, err := index.NewIndexer(*mode, cb)
+	
+	gather_func, err := WOFGatherTilesFunc(gather_opts)
 
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	for _, path := range flag.Args() {
+	err = seed.GatherTiles(tileset, seeder, gather_func)
 
-		err := idx.IndexPath(path)
-
-		if err != nil {
-			logger.Fatal(err)
-		}
+	if err != nil {
+		logger.Fatal(err)
 	}
-
+	
 	if *count {
-		fmt.Println(ts.Count())
+		fmt.Println(tileset.Count())
 		os.Exit(0)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	ok, errors := seeder.SeedTileSet(ctx, ts)
+	ok, errors := seeder.SeedTileSet(ctx, tileset)
 
 	if !ok {
 

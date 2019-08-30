@@ -117,8 +117,8 @@ github.com/whosonfirst/geojson2svg v1.1.0/go.mod h1:L+2OxSnjAWMFcnPwjcKxH3AhnMuk
 github.com/whosonfirst/go-bindata v0.1.0/go.mod h1:qaBkVepgCeknoVuYsUXTJpnlxqrEcZzaIaqZ6XaK+Hk=
 github.com/whosonfirst/go-bindata-assetfs v1.0.1/go.mod h1:ZCQnq9roYYk19IAwLQyMnDPSmE+lns9K85+85JSQ4DI=
 github.com/whosonfirst/go-bindata-html-template v0.1.0/go.mod h1:9hFeWQjFjARoh9WhqK29XTyMUewjs9xEiBUrawmM1lM=
-github.com/whosonfirst/go-rasterzen v0.2.8 h1:dix4mRGvwjuV1FF3/vnnyxePwHwPGdKqYfqEagmt/N0=
-github.com/whosonfirst/go-rasterzen v0.2.8/go.mod h1:dd8v5sLKvfBQ5IYNE+EUGeuKd9AwVO9NdP6+FBY+Bzo=
+github.com/whosonfirst/go-rasterzen v0.2.9 h1:0nYCtMrMHinP+qesAUaLMdPJFojCnRFrRyWub4oqIIM=
+github.com/whosonfirst/go-rasterzen v0.2.9/go.mod h1:dd8v5sLKvfBQ5IYNE+EUGeuKd9AwVO9NdP6+FBY+Bzo=
 github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8 h1:5dtYgPS6su1QqwUfVnyEL9V7GvMWX+60VRkUX5RvJsc=
 github.com/whosonfirst/go-spatialite v0.0.0-20180220171945-cb1d9ed624a8/go.mod h1:JnzadIex2v6ZyX6pLrjJ5CJ69e/ljYBCqxarHDMkMJ4=
 github.com/whosonfirst/go-spatialite v0.1.0 h1:jKbVmIeUSsDfPX4DWTeiSR9zGJFETIF1A3YdK6IShBY=
