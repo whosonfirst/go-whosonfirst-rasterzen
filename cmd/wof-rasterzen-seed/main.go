@@ -68,7 +68,7 @@ func WOFGatherTilesFunc(opts *WOFGatherTilesOptions) (seed.GatherTilesFunc, erro
 
 				tileset.Logger.Warning(err)
 			}
-	
+
 			for _, e := range opts.Exclude {
 
 				path := e.Key
@@ -120,7 +120,7 @@ func WOFGatherTilesFunc(opts *WOFGatherTilesOptions) (seed.GatherTilesFunc, erro
 			}
 
 			tileset.Logger.Status("Seed tiles for %s", f.Name())
-			
+
 			for _, bounds := range bboxes.Bounds() {
 
 				min := [2]float64{bounds.Min.X, bounds.Min.Y}
