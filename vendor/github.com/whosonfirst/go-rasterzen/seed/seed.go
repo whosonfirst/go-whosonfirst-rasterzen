@@ -56,23 +56,6 @@ func NewTileSetFromDSN(str_dsn string) (*TileSet, error) {
 			break
 		}
 
-		/*
-
-					if !strings.HasPrefix(sqlite_dsn, ":memory:"){
-
-						parts := strings.Split(sqlite_dsn, "?")
-						path := parts[0]
-
-			 			_, err := os.Stat(path){
-
-							if err == nil {
-
-							}
-						}
-					}
-
-		*/
-
 		seed_catalog, err = catalog.NewSQLiteSeedCatalog(sqlite_dsn)
 
 	case "SYNC":
