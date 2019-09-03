@@ -5,13 +5,12 @@ import (
 	"errors"
 	"flag"
 	_ "fmt"
-	"github.com/aaronland/go-string/dsn"	
-	"github.com/go-spatial/geom"
-	"github.com/go-spatial/geom/slippy"
+	"github.com/aaronland/go-string/dsn"
 	"github.com/jtacoma/uritemplates"
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-rasterzen/nextzen"
-	"github.com/whosonfirst/go-rasterzen/seed"
+	rz_seed "github.com/whosonfirst/go-rasterzen/seed"
+	"github.com/whosonfirst/go-whosonfirst-rasterzen/seed"	
 	"github.com/whosonfirst/go-rasterzen/tile"
 	"github.com/whosonfirst/go-rasterzen/worker"
 	"github.com/whosonfirst/go-whosonfirst-cache"
@@ -23,7 +22,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-log"
 	"github.com/whosonfirst/warning"
 	"io"
-	"io/ioutil"	
+	"io/ioutil"
 	"os"
 	"strings"
 )
@@ -42,8 +41,6 @@ func main() {
 	var mode = flag.String("mode", "repo", "")
 	var min_zoom = flag.Int("min-zoom", 1, "")
 	var max_zoom = flag.Int("max-zoom", 16, "")
-
-	var count = flag.Bool("count", false, "Display the number of tiles to process and exit.")
 
 	nextzen_apikey := flag.String("nextzen-apikey", "", "A valid Nextzen API key.")
 	nextzen_origin := flag.String("nextzen-origin", "", "An optional HTTP 'Origin' host to pass along with your Nextzen requests.")
@@ -84,7 +81,7 @@ func main() {
 
 	timings := flag.Bool("timings", false, "Display timings for tile seeding.")
 	log_level := flag.String("log-level", "status", "Log level to use for logging")
-	
+
 	flag.Parse()
 
 	if *seed_all {
@@ -251,7 +248,7 @@ func main() {
 		logger.Fatal(w_err)
 	}
 
-	seeder, err := seed.NewTileSeeder(w, c)
+	seeder, err := rz_seed.NewTileSeeder(w, c)
 
 	if err != nil {
 		logger.Fatal(err)
@@ -273,82 +270,74 @@ func main() {
 		default:
 			// pass
 		}
-		
+
 		principal, err := utils.IsPrincipalWOFRecord(fh, ctx)
-		
+
 		if err != nil {
 			return err
 		}
-		
+
 		if !principal {
 			return nil
 		}
-		
+
 		f, err := feature.LoadFeatureFromReader(fh)
-		
+
 		if err != nil {
 
 			if !warning.IsWarning(err) {
 				return err
 			}
-			
+
 			logger.Warning(err)
 		}
-		
+
 		for _, e := range exclude {
-			
+
 			path := e.Key
 			test := e.Value
-			
+
 			rsp := gjson.GetBytes(f.Bytes(), path)
-			
+
 			if rsp.Exists() && rsp.String() == test {
 				logger.Debug("%s (%s) is being exluded because it matches the %s=%s -exclude test", f.Name(), f.Id(), path, test)
 				return nil
 			}
 		}
-		
+
 		if len(include) > 0 {
-			
+
 			include_ok := false
-			
+
 			for _, i := range include {
-				
+
 				path := i.Key
 				test := i.Value
-				
+
 				rsp := gjson.GetBytes(f.Bytes(), path)
-				
+
 				if !rsp.Exists() {
 					logger.Debug("%s (%s) fails -include test because %s does not exist", f.Name(), f.Id(), path)
 					continue
 				}
-				
+
 				if rsp.String() != test {
 					logger.Debug("%s (%s) fails -include test because %s != %s (is %s)", f.Name(), f.Id(), path, test, rsp.String())
 					continue
 				}
-				
+
 				include_ok = true
 				break
 			}
-			
+
 			if !include_ok {
 				logger.Debug("%s (%s) is being excluded because all -include tests failed", f.Name(), f.Id())
 				return nil
 			}
 		}
-		
-		bboxes, err := f.BoundingBoxes()
-		
-		if err != nil {
-			return err
-		}
-
-		// move this in to a function...
 
 		dsn_str := *seed_tileset_catalog_dsn
-		dsn_map, err := dsn.StringToDSNWithKeys(dsn_str, "catalog")		
+		dsn_map, err := dsn.StringToDSNWithKeys(dsn_str, "catalog")
 
 		if err != nil {
 			return err
@@ -374,70 +363,46 @@ func main() {
 			defer os.Remove(tmpfile.Name())
 		}
 
-		tileset, err := seed.NewTileSetFromDSN(dsn_str)
-		
+		tileset, err := rz_seed.NewTileSetFromDSN(dsn_str)
+
 		if err != nil {
 			return err
 		}
 
 		tileset.Logger = logger
 		tileset.Timings = *timings
-		
+
 		tileset.Logger.Status("Seed tiles for %s", f.Name())
-
-		// just use seed.GatherTilesFuncExtent...
 		
-		for _, bounds := range bboxes.Bounds() {
-			
-			min := [2]float64{bounds.Min.X, bounds.Min.Y}
-			max := [2]float64{bounds.Max.Y, bounds.Max.Y}
-			
-			ex := geom.NewExtent(min, max)
-			
-			for z := *min_zoom; z < *max_zoom; z++ {
-				
-				for _, t := range slippy.FromBounds(ex, uint(z)) {
-					tileset.AddTile(t)
-				}
-			}
+		gather_func, err := seed.NewGatherTilesFeatureFunc(f, *min_zoom, *max_zoom)
+
+		if err != nil {
+			return err
 		}
 
-		if *count {
-			tileset.Logger.Status("Tile count for %s (%s): %d", f.Name(), f.Id(), tileset.Count())
-			return nil
+		err = gather_func(ctx, tileset)
+
+		if err != nil {
+			return err
 		}
 
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-
-		ok, errors := seeder.SeedTileSet(ctx, tileset)
-
-		if !ok {
-
-			tileset.Logger.Error("Failed to seeding tileset for %s", f.Name())
-			
-			for _, e := range errors {
-				tileset.Logger.Error(e)
-			}		
-		}
-		
 		return nil
 	}
-	
+
 	idx, err := index.NewIndexer(*mode, index_func)
-	
+
 	if err != nil {
 		logger.Fatal(err)
 	}
-	
+
 	for _, path := range flag.Args() {
 
 		err := idx.IndexPath(path)
-		
+
 		if err != nil {
 			logger.Fatal(err)
 		}
 	}
-	
+
 	os.Exit(0)
 }
