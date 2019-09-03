@@ -6,7 +6,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 )
 
-func NewGatherTilesFeatureFunc(f geojson.Feature, min_zoom int, max_zoom int) (rz_seed.GatherTilesFunc, error){
+func NewGatherTilesFeatureFunc(f geojson.Feature, min_zoom int, max_zoom int) (rz_seed.GatherTilesFunc, error) {
 
 	bboxes, err := f.BoundingBoxes()
 

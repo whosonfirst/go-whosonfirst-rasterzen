@@ -10,7 +10,6 @@ import (
 	"github.com/tidwall/gjson"
 	"github.com/whosonfirst/go-rasterzen/nextzen"
 	rz_seed "github.com/whosonfirst/go-rasterzen/seed"
-	"github.com/whosonfirst/go-whosonfirst-rasterzen/seed"	
 	"github.com/whosonfirst/go-rasterzen/tile"
 	"github.com/whosonfirst/go-rasterzen/worker"
 	"github.com/whosonfirst/go-whosonfirst-cache"
@@ -20,6 +19,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-index/utils"
 	"github.com/whosonfirst/go-whosonfirst-log"
+	"github.com/whosonfirst/go-whosonfirst-rasterzen/seed"
 	"github.com/whosonfirst/warning"
 	"io"
 	"io/ioutil"
@@ -373,7 +373,7 @@ func main() {
 		tileset.Timings = *timings
 
 		tileset.Logger.Status("Seed tiles for %s", f.Name())
-		
+
 		gather_func, err := seed.NewGatherTilesFeatureFunc(f, *min_zoom, *max_zoom)
 
 		if err != nil {
@@ -384,6 +384,17 @@ func main() {
 
 		if err != nil {
 			return err
+		}
+
+		ok, errors := seeder.SeedTileSet(ctx, tileset)
+
+		// how best to handle this...
+
+		if !ok {
+
+			for _, e := range errors {
+				tileset.Logger.Error("Failed to tile %s (%s): %s\n", f.Name(), f.Id(), e)
+			}
 		}
 
 		return nil
