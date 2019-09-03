@@ -83,7 +83,8 @@ func main() {
 	lambda_function := flag.String("lambda-function", "Rasterzen", "A valid AWS Lambda function name.")
 
 	timings := flag.Bool("timings", false, "Display timings for tile seeding.")
-
+	log_level := flag.String("log-level", "status", "Log level to use for logging")
+	
 	flag.Parse()
 
 	if *seed_all {
@@ -95,7 +96,7 @@ func main() {
 	logger := log.SimpleWOFLogger()
 
 	writer := io.MultiWriter(os.Stdout)
-	logger.AddLogger(writer, "status")
+	logger.AddLogger(writer, *log_level)
 
 	nz_opts := &nextzen.Options{
 		ApiKey: *nextzen_apikey,
