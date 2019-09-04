@@ -59,6 +59,11 @@ func main() {
 	seed_png := flag.Bool("seed-png", false, "Seed PNG tiles.")
 	seed_all := flag.Bool("seed-all", false, "See all the tile formats")
 
+	refresh_rasterzen := flag.Bool("refresh-rasterzen", false, "Force rasterzen tiles to be generated even if they are already cached.")
+	refresh_svg := flag.Bool("refresh-svg", false, "Force SVG tiles to be generated even if they are already cached.")
+	refresh_png := flag.Bool("refresh-png", false, "Force PNG tiles to be generated even if they are already cached.")
+	refresh_all := flag.Bool("refresh-all", false, "Force all tiles to be generated even if they are already cached.")
+
 	seed_worker := flag.String("seed-worker", "local", "The type of worker for seeding tiles. Valid workers are: lambda, local, sqs.")
 	max_workers := flag.Int("seed-max-workers", 100, "The maximum number of concurrent workers to invoke when seeding tiles")
 
@@ -74,7 +79,10 @@ func main() {
 	flag.Var(&exclude, "exclude", "Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.")
 	flag.Var(&include, "include", "Include only those records matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.")
 
+	custom_rz_options := flag.String("rasterzen-options", "", "The path to a valid RasterzenOptions JSON file.")
 	custom_svg_options := flag.String("svg-options", "", "The path to a valid RasterzenSVGOptions JSON file.")
+	custom_png_options := flag.String("png-options", "", "The path to a valid RasterzenPNGOptions JSON file.")
+
 	seed_tileset_catalog_dsn := flag.String("seed-tileset-catalog-dsn", "catalog=sync", "A valid tile.SeedCatalog DSN string. Required parameters are 'catalog=CATALOG'")
 
 	lambda_function := flag.String("lambda-function", "Rasterzen", "A valid AWS Lambda function name.")
@@ -88,6 +96,12 @@ func main() {
 		*seed_rasterzen = true
 		*seed_svg = true
 		*seed_png = true
+	}
+
+	if *refresh_all {
+		*refresh_rasterzen = true
+		*refresh_svg = true
+		*refresh_png = true
 	}
 
 	logger := log.SimpleWOFLogger()
@@ -196,7 +210,36 @@ func main() {
 		logger.Fatal(err)
 	}
 
+	var rz_opts *tile.RasterzenOptions
 	var svg_opts *tile.RasterzenSVGOptions
+	var png_opts *tile.RasterzenPNGOptions
+
+	if *custom_rz_options != "" {
+
+		var opts *tile.RasterzenOptions
+
+		if strings.HasPrefix(*custom_png_options, "{") {
+			opts, err = tile.RasterzenOptionsFromString(*custom_rz_options)
+		} else {
+			opts, err = tile.RasterzenOptionsFromFile(*custom_rz_options)
+		}
+
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		rz_opts = opts
+
+	} else {
+
+		opts, err := tile.DefaultRasterzenOptions()
+
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		rz_opts = opts
+	}
 
 	if *seed_svg || *seed_png {
 
@@ -227,7 +270,38 @@ func main() {
 			svg_opts = opts
 		}
 
+		if *custom_png_options != "" {
+
+			var opts *tile.RasterzenPNGOptions
+
+			if strings.HasPrefix(*custom_png_options, "{") {
+				opts, err = tile.RasterzenPNGOptionsFromString(*custom_png_options)
+			} else {
+				opts, err = tile.RasterzenPNGOptionsFromFile(*custom_png_options)
+			}
+
+			if err != nil {
+				logger.Fatal(err)
+			}
+
+			png_opts = opts
+
+		} else {
+
+			opts, err := tile.DefaultRasterzenPNGOptions()
+
+			if err != nil {
+				logger.Fatal(err)
+			}
+
+			png_opts = opts
+		}
+
 	}
+
+	rz_opts.Refresh = *refresh_rasterzen
+	svg_opts.Refresh = *refresh_svg
+	png_opts.Refresh = *refresh_png
 
 	var w worker.Worker
 	var w_err error
@@ -235,9 +309,9 @@ func main() {
 	switch strings.ToUpper(*seed_worker) {
 
 	case "LAMBDA":
-		w, w_err = worker.NewLambdaWorker(lambda_dsn.Map(), *lambda_function, c, nz_opts, svg_opts)
+		w, w_err = worker.NewLambdaWorker(lambda_dsn.Map(), *lambda_function, c, nz_opts, rz_opts, svg_opts, png_opts)
 	case "LOCAL":
-		w, w_err = worker.NewLocalWorker(c, nz_opts, svg_opts)
+		w, w_err = worker.NewLocalWorker(c, nz_opts, rz_opts, svg_opts, png_opts)
 	case "SQS":
 		w, w_err = worker.NewSQSWorker(sqs_dsn.Map())
 	default:
