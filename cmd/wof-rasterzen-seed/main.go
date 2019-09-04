@@ -1,5 +1,10 @@
 package main
 
+// this is an almost stright-clone of go-rasterzen/cmd/rasterzen-seed/main.go
+// which means any times there are changes in go-rasterzen we usually have to
+// update things here - something more "unified" would be better but I am not
+// sure what that is yet... (20190904/thisisaaronland)
+
 import (
 	"context"
 	"errors"
