@@ -30,6 +30,7 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 )
 
 type WOFGatherTilesOptions struct {
@@ -341,6 +342,42 @@ func main() {
 	seeder.SeedSVG = *seed_svg
 	seeder.SeedPNG = *seed_png
 
+	dsn_str := *seed_tileset_catalog_dsn
+	dsn_map, err := dsn.StringToDSNWithKeys(dsn_str, "catalog")
+
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	if strings.ToUpper(dsn_map["catalog"]) == "SQLITE" {
+
+		tmpfile, err := ioutil.TempFile("", "rasterzen")
+
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		err = tmpfile.Close()
+
+		if err != nil {
+			logger.Fatal(err)
+		}
+
+		dsn_map["dsn"] = tmpfile.Name()
+		dsn_str = dsn_map.String()
+
+		defer os.Remove(tmpfile.Name())
+	}
+
+	tileset, err := rz_seed.NewTileSetFromDSN(dsn_str)
+
+	if err != nil {
+		logger.Fatal(err)
+	}
+
+	tileset.Logger = logger
+	tileset.Timings = *timings
+
 	index_func := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
 		select {
@@ -415,43 +452,7 @@ func main() {
 			}
 		}
 
-		dsn_str := *seed_tileset_catalog_dsn
-		dsn_map, err := dsn.StringToDSNWithKeys(dsn_str, "catalog")
-
-		if err != nil {
-			return err
-		}
-
-		if strings.ToUpper(dsn_map["catalog"]) == "SQLITE" {
-
-			tmpfile, err := ioutil.TempFile("", "rasterzen")
-
-			if err != nil {
-				return err
-			}
-
-			err = tmpfile.Close()
-
-			if err != nil {
-				return err
-			}
-
-			dsn_map["dsn"] = tmpfile.Name()
-			dsn_str = dsn_map.String()
-
-			defer os.Remove(tmpfile.Name())
-		}
-
-		tileset, err := rz_seed.NewTileSetFromDSN(dsn_str)
-
-		if err != nil {
-			return err
-		}
-
-		tileset.Logger = logger
-		tileset.Timings = *timings
-
-		tileset.Logger.Status("Seed tiles for %s", f.Name())
+		tileset.Logger.Status("Gather tiles for %s", f.Name())
 
 		gather_func, err := seed.NewGatherTilesFeatureFunc(f, *min_zoom, *max_zoom)
 
@@ -459,21 +460,16 @@ func main() {
 			return err
 		}
 
+		t1 := time.Now()
+
+		defer func() {
+			tileset.Logger.Status("Time to gather tiles for %s: %v", f.Name(), time.Since(t1))
+		}()
+
 		err = gather_func(ctx, tileset)
 
 		if err != nil {
 			return err
-		}
-
-		ok, errors := seeder.SeedTileSet(ctx, tileset)
-
-		// how best to handle this...
-
-		if !ok {
-
-			for _, e := range errors {
-				tileset.Logger.Error("Failed to tile %s (%s): %s\n", f.Name(), f.Id(), e)
-			}
 		}
 
 		return nil
@@ -491,6 +487,23 @@ func main() {
 
 		if err != nil {
 			logger.Fatal(err)
+		}
+	}
+
+	t1 := time.Now()
+
+	defer func() {
+		logger.Status("Time to seed tileset: %v", time.Since(t1))
+	}()
+
+	ok, errors := seeder.SeedTileSet(context.Background(), tileset)
+
+	// how best to handle this...
+
+	if !ok {
+
+		for _, e := range errors {
+			tileset.Logger.Error("Failed to seed tiles: %s", e)
 		}
 	}
 
