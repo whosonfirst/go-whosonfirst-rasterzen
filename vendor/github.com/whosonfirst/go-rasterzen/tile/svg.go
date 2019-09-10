@@ -170,17 +170,6 @@ func RenderSVGTile(t slippy.Tile, c cache.Cache, nz_opts *nextzen.Options, rz_op
 	return c.Set(svg_key, svg_fh)
 }
 
-func RasterzenToSVG(in io.Reader, out io.Writer) error {
-
-	opts, err := DefaultRasterzenSVGOptions()
-
-	if err != nil {
-		return err
-	}
-
-	return RasterzenToSVGWithOptions(in, out, opts)
-}
-
 func RasterzenToSVGWithOptions(in io.Reader, out io.Writer, svg_opts *RasterzenSVGOptions) error {
 
 	body, err := ioutil.ReadAll(in)
