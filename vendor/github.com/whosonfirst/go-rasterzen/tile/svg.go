@@ -450,12 +450,16 @@ func RasterzenToSVGWithOptions(in io.Reader, out io.Writer, svg_opts *RasterzenS
 
 	if svg_opts.TileExtent != nil {
 
+		
 		s.Extent = &geojson2svg.Extent{
 			MinX: svg_opts.TileExtent.MinX(),
 			MinY: svg_opts.TileExtent.MinY(),
 			MaxX: svg_opts.TileExtent.MaxX(),
 			MaxY: svg_opts.TileExtent.MaxY(),
 		}
+
+		log.Println("SVG OPTS IS NIL", s.Extent)
+		log.Println("SVG WHAT", string(body))
 	}
 
 	rsp := s.Draw(tile_size, tile_size,
