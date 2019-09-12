@@ -303,11 +303,11 @@ func main() {
 			png_opts = opts
 		}
 
+		svg_opts.Refresh = *refresh_svg
+		png_opts.Refresh = *refresh_png
 	}
 
 	rz_opts.Refresh = *refresh_rasterzen
-	svg_opts.Refresh = *refresh_svg
-	png_opts.Refresh = *refresh_png
 
 	var w worker.Worker
 	var w_err error
