@@ -71,7 +71,7 @@ func main() {
 	refresh_all := flag.Bool("refresh-all", false, "Force all tiles to be generated even if they are already cached.")
 
 	seed_worker := flag.String("seed-worker", "local", "The type of worker for seeding tiles. Valid workers are: lambda, local, sqs.")
-	max_workers := flag.Int("seed-max-workers", 100, "The maximum number of concurrent workers to invoke when seeding tiles")
+	max_workers := flag.Int("seed-max-workers", 0, "The maximum number of concurrent workers to invoke when seeding tiles. The default is the value of `runtime.NumCPU()` * 2.")
 
 	var lambda_dsn flags.DSNString
 	flag.Var(&lambda_dsn, "lambda-dsn", "A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION'")
@@ -334,7 +334,10 @@ func main() {
 		logger.Fatal(err)
 	}
 
-	seeder.MaxWorkers = *max_workers
+	if *max_workers > 0 {
+		seeder.MaxWorkers = *max_workers
+	}
+	
 	seeder.Logger = logger
 	seeder.Timings = *timings
 

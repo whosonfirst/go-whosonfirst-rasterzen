@@ -9,6 +9,17 @@ import (
 	"os"
 )
 
+func RasterzenToImage(in io.Reader) (image.Image, error) {
+
+	opts, err := DefaultRasterzenSVGOptions()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return RasterzenToImageWithOptions(in, opts)
+}
+
 func RasterzenToImageWithOptions(in io.Reader, svg_opts *RasterzenSVGOptions) (image.Image, error) {
 
 	tmpfile, err := ioutil.TempFile("", "svg")
