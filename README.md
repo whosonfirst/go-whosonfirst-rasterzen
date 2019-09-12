@@ -28,10 +28,8 @@ For background, you should read the following blog posts:
 Pre-seed [go-rasterzen](https://github.com/whosonfirst/go-rasterzen) tiles (and their vector/raster derivatives) for one or more [go-whosonfirst-index](https://github.com/whosonfirst/go-whosonfirst-index) compatible indices.
 
 ```
-> ./bin/wof-rasterzen-seed -h
-Usage of ./bin/wof-rasterzen-seed:
-  -count
-    	Display the number of tiles to process and exit.
+> go run cmd/wof-rasterzen-seed/main.go -h
+Usage of /var/folders/_k/h7ndzcyx3dq027gsrg1q45xm0000gn/T/go-build375480020/b001/exe/main:
   -exclude value
     	Exclude records not matching one or path '{PATH}={VALUE}' statements. Paths are evaluated using the gjson package's 'dot' syntax.
   -fs-cache
@@ -46,6 +44,8 @@ Usage of ./bin/wof-rasterzen-seed:
     	A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION'
   -lambda-function string
     	A valid AWS Lambda function name. (default "Rasterzen")
+  -log-level string
+    	Log level to use for logging (default "status")
   -max-zoom int
     	 (default 16)
   -min-zoom int
@@ -60,6 +60,18 @@ Usage of ./bin/wof-rasterzen-seed:
     	An optional HTTP 'Origin' host to pass along with your Nextzen requests.
   -nextzen-uri string
     	A valid URI template (RFC 6570) pointing to a custom Nextzen endpoint.
+  -png-options string
+    	The path to a valid RasterzenPNGOptions JSON file.
+  -rasterzen-options string
+    	The path to a valid RasterzenOptions JSON file.
+  -refresh-all
+    	Force all tiles to be generated even if they are already cached.
+  -refresh-png
+    	Force PNG tiles to be generated even if they are already cached.
+  -refresh-rasterzen
+    	Force rasterzen tiles to be generated even if they are already cached.
+  -refresh-svg
+    	Force SVG tiles to be generated even if they are already cached.
   -s3-cache
     	Cache tiles with a S3-based cache.
   -s3-dsn string
@@ -68,18 +80,22 @@ Usage of ./bin/wof-rasterzen-seed:
     	A valid go-whosonfirst-cache-s3 options string
   -seed-all
     	See all the tile formats
-  -seed-max-workers int
-    	The maximum number of concurrent workers to invoke when seeding tiles (default 100)
+  -seed-max-workers runtime.NumCPU()
+    	The maximum number of concurrent workers to invoke when seeding tiles. The default is the value of runtime.NumCPU() * 2.
   -seed-png
     	Seed PNG tiles.
   -seed-rasterzen
     	Seed Rasterzen tiles.
   -seed-svg
     	Seed SVG tiles.
+  -seed-tileset-catalog-dsn string
+    	A valid tile.SeedCatalog DSN string. Required parameters are 'catalog=CATALOG' (default "catalog=sync")
   -seed-worker string
     	The type of worker for seeding tiles. Valid workers are: lambda, local, sqs. (default "local")
   -sqs-dsn value
     	A valid go-whosonfirst-aws DSN string. Required paremeters are 'credentials=CREDENTIALS' and 'region=REGION' and 'queue=QUEUE'
+  -svg-options string
+    	The path to a valid RasterzenSVGOptions JSON file.
   -timings
     	Display timings for tile seeding.
 ```
