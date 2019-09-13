@@ -337,7 +337,7 @@ func main() {
 	if *max_workers > 0 {
 		seeder.MaxWorkers = *max_workers
 	}
-	
+
 	seeder.Logger = logger
 	seeder.Timings = *timings
 
@@ -469,6 +469,32 @@ func main() {
 			tileset.Logger.Status("Time to gather tiles for %s: %v", f.Name(), time.Since(t1))
 		}()
 
+		if tileset.Timings {
+
+			ticker := time.NewTicker(time.Second * 10)
+			ticker_ch := make(chan bool)
+
+			defer func() {
+				ticker_ch <- true
+			}()
+
+			go func() {
+
+				for range ticker.C {
+
+					select {
+					case <-ctx.Done():
+						return
+					case <-ticker_ch:
+						return
+					default:
+						count := tileset.Count()
+						tileset.Logger.Status("%s (%s) %d tiles gathered so far (%v)", f.Name(), f.Id(), count, time.Since(t1))
+					}
+				}
+			}()
+		}
+
 		err = gather_func(ctx, tileset)
 
 		if err != nil {
@@ -484,6 +510,8 @@ func main() {
 		logger.Fatal(err)
 	}
 
+	t1 := time.Now()
+
 	for _, path := range flag.Args() {
 
 		err := idx.IndexPath(path)
@@ -493,7 +521,8 @@ func main() {
 		}
 	}
 
-	t1 := time.Now()
+	count := tileset.Count()
+	logger.Status("Time to gather %d tiles: %v", count, time.Since(t1))
 
 	defer func() {
 		logger.Status("Time to seed tileset: %v", time.Since(t1))
