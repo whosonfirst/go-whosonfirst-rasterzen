@@ -18,7 +18,7 @@ func NewGatherTilesFunc(tiles []string) (GatherTilesFunc, error) {
 	gather_func := func(ctx context.Context, tileset *TileSet) (int64, error) {
 
 		count := int64(0)
-		
+
 		for _, str_zxy := range tiles {
 
 			z, x, y, err := parse_zxy(str_zxy)
@@ -53,7 +53,7 @@ func NewGatherTilesExtentFunc(extents []string, sep string, min_zoom int, max_zo
 	gather_func := func(ctx context.Context, tileset *TileSet) (int64, error) {
 
 		count := int64(0)
-		
+
 		for _, str_extent := range extents {
 
 			ex, err := parse_extent(str_extent, sep)

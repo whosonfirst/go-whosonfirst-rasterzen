@@ -179,7 +179,7 @@ func main() {
 			return err
 		}
 
-		err = gather_func(ctx, tileset)
+		_, err = gather_func(ctx, tileset)
 
 		if err != nil {
 			return err
