@@ -20,6 +20,7 @@ import (
 	"github.com/whosonfirst/go-whosonfirst-cache"
 	"github.com/whosonfirst/go-whosonfirst-cache-s3"
 	"github.com/whosonfirst/go-whosonfirst-cli/flags"
+	"github.com/whosonfirst/go-whosonfirst-geojson-v2"
 	"github.com/whosonfirst/go-whosonfirst-geojson-v2/feature"
 	"github.com/whosonfirst/go-whosonfirst-index"
 	"github.com/whosonfirst/go-whosonfirst-index/utils"
@@ -29,6 +30,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"runtime"
 	"strings"
 	"time"
 )
@@ -40,6 +42,33 @@ type WOFGatherTilesOptions struct {
 	Include flags.KeyValueArgs
 	Exclude flags.KeyValueArgs
 	Paths   []string
+}
+
+func GatherTilesForFeature(ctx context.Context, tileset *rz_seed.TileSet, f geojson.Feature, min_zoom int, max_zoom int) error {
+
+	select {
+	case <-ctx.Done():
+		return nil
+	default:
+		// pass
+	}
+
+	t1 := time.Now()
+
+	gather_func, err := seed.NewGatherTilesFeatureFunc(f, min_zoom, max_zoom)
+
+	if err != nil {
+		return err
+	}
+
+	count, err := gather_func(ctx, tileset)
+
+	if err != nil {
+		return err
+	}
+
+	tileset.Logger.Status("Gathered %d tiles for %s (%s), %v", count, f.Name(), f.Id(), time.Since(t1))
+	return nil
 }
 
 func main() {
@@ -372,6 +401,13 @@ func main() {
 		defer os.Remove(tmpfile.Name())
 	}
 
+	index_workers := runtime.NumCPU()
+	throttle := make(chan bool, index_workers)
+
+	for i := 0; i < index_workers; i++ {
+		throttle <- true
+	}
+
 	tileset, err := rz_seed.NewTileSetFromDSN(dsn_str)
 
 	if err != nil {
@@ -380,6 +416,32 @@ func main() {
 
 	tileset.Logger = logger
 	tileset.Timings = *timings
+
+	if tileset.Timings {
+
+		ticker := time.NewTicker(time.Second * 10)
+		ticker_ch := make(chan bool)
+
+		defer func() {
+			ticker_ch <- true
+		}()
+
+		go func() {
+
+			t1 := time.Now()
+
+			for range ticker.C {
+
+				select {
+				case <-ticker_ch:
+					return
+				default:
+					count := tileset.Count()
+					tileset.Logger.Status("total tiles gathered so far: %d (%v)", count, time.Since(t1))
+				}
+			}
+		}()
+	}
 
 	index_func := func(fh io.Reader, ctx context.Context, args ...interface{}) error {
 
@@ -455,53 +517,16 @@ func main() {
 			}
 		}
 
-		tileset.Logger.Status("Gather tiles for %s", f.Name())
-
-		gather_func, err := seed.NewGatherTilesFeatureFunc(f, *min_zoom, *max_zoom)
-
-		if err != nil {
-			return err
-		}
-
 		t1 := time.Now()
 
+		<-throttle
+
 		defer func() {
-			tileset.Logger.Status("Time to gather tiles for %s: %v", f.Name(), time.Since(t1))
+			throttle <- true
 		}()
 
-		if tileset.Timings {
-
-			ticker := time.NewTicker(time.Second * 10)
-			ticker_ch := make(chan bool)
-
-			defer func() {
-				ticker_ch <- true
-			}()
-
-			go func() {
-
-				for range ticker.C {
-
-					select {
-					case <-ctx.Done():
-						return
-					case <-ticker_ch:
-						return
-					default:
-						count := tileset.Count()
-						tileset.Logger.Status("%s (%s) %d tiles gathered so far (%v)", f.Name(), f.Id(), count, time.Since(t1))
-					}
-				}
-			}()
-		}
-
-		err = gather_func(ctx, tileset)
-
-		if err != nil {
-			return err
-		}
-
-		return nil
+		logger.Status("Gather tiles for %s (%s), %v delay", f.Name(), f.Id(), time.Since(t1))
+		return GatherTilesForFeature(ctx, tileset, f, *min_zoom, *max_zoom)
 	}
 
 	idx, err := index.NewIndexer(*mode, index_func)
@@ -523,10 +548,6 @@ func main() {
 
 	count := tileset.Count()
 	logger.Status("Time to gather %d tiles: %v", count, time.Since(t1))
-
-	defer func() {
-		logger.Status("Time to seed tileset: %v", time.Since(t1))
-	}()
 
 	ok, errors := seeder.SeedTileSet(context.Background(), tileset)
 
