@@ -105,9 +105,9 @@ github.com/tidwall/match
 github.com/tidwall/pretty
 # github.com/tidwall/sjson v1.0.4
 github.com/tidwall/sjson
-# github.com/whosonfirst/geojson2svg v1.1.0
-github.com/whosonfirst/geojson2svg/pkg/geojson2svg
-# github.com/whosonfirst/go-rasterzen v0.4.2
+# github.com/whosonfirst/go-geojson-svg v0.0.1
+github.com/whosonfirst/go-geojson-svg
+# github.com/whosonfirst/go-rasterzen v0.4.4
 github.com/whosonfirst/go-rasterzen/nextzen
 github.com/whosonfirst/go-rasterzen/seed
 github.com/whosonfirst/go-rasterzen/tile
@@ -126,7 +126,7 @@ github.com/whosonfirst/go-whosonfirst-cache
 github.com/whosonfirst/go-whosonfirst-cache-s3
 # github.com/whosonfirst/go-whosonfirst-cli v0.1.0
 github.com/whosonfirst/go-whosonfirst-cli/flags
-# github.com/whosonfirst/go-whosonfirst-crawl v0.1.0
+# github.com/whosonfirst/go-whosonfirst-crawl v0.2.0
 github.com/whosonfirst/go-whosonfirst-crawl
 # github.com/whosonfirst/go-whosonfirst-csv v0.1.0
 github.com/whosonfirst/go-whosonfirst-csv
@@ -164,7 +164,7 @@ github.com/whosonfirst/go-whosonfirst-sqlite/utils
 github.com/whosonfirst/go-whosonfirst-sqlite
 # github.com/whosonfirst/go-whosonfirst-uri v0.1.0
 github.com/whosonfirst/go-whosonfirst-uri
-# github.com/whosonfirst/walk v0.0.0-20160802000000-c0a349674b73681a7272f5ce6ade8ea28055059f
+# github.com/whosonfirst/walk v0.0.0-20160803014805-c0a349674b73
 github.com/whosonfirst/walk
 # github.com/whosonfirst/warning v0.1.0
 github.com/whosonfirst/warning
